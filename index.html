@@ -5,72 +5,102 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pintar Sifir Bersama Cikgu Farid</title>
   <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --text: #f8fafc;
+      --border: #334155;
+      --accent: #38bdf8;
+    }
+
     * {
       box-sizing: border-box;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       margin: 0;
       padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
 
     body {
-      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
-      color: #f8fafc;
-      min-height: 100vh;
+      background-color: var(--bg);
+      color: var(--text);
       display: flex;
       justify-content: center;
       align-items: center;
       padding: 1rem;
+      min-height: 100vh;
     }
 
-    .card {
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 1rem;
-      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    .container {
       width: 100%;
-      max-width: 650px;
-      padding: 2rem;
-      position: relative;
+      max-width: 600px;
+      background: var(--card-bg);
+      padding: 1.5rem;
+      border-radius: 1rem;
+      border: 1px solid var(--border);
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
     }
 
     h1, h2, h3 {
       text-align: center;
-      margin-bottom: 1.25rem;
-      color: #f8fafc;
+      color: var(--text);
     }
 
     .form-group {
-      margin-bottom: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
     }
 
     label {
-      display: block;
-      font-size: 0.875rem;
       font-weight: 600;
-      margin-bottom: 0.4rem;
+      font-size: 0.875rem;
       color: #cbd5e1;
     }
 
-    input, select {
-      width: 100%;
+    input, select, button {
       padding: 0.75rem 1rem;
+      border: 1px solid var(--border);
       background-color: #0f172a;
-      border: 1px solid #334155;
+      color: var(--text);
       border-radius: 0.5rem;
-      color: #f8fafc;
       font-size: 1rem;
+      width: 100%;
       outline: none;
     }
 
     input:focus, select:focus {
-      border-color: #38bdf8;
+      border-color: var(--accent);
+    }
+
+    .btn-primary {
+      background-color: var(--accent);
+      color: #0f172a;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+      font-size: 1.125rem;
+      padding: 1rem;
+    }
+
+    .btn-secondary {
+      background-color: #334155;
+      color: var(--text);
+      font-weight: bold;
+      border: 1px solid #475569;
+      cursor: pointer;
+      font-size: 1.125rem;
+      padding: 1rem;
     }
 
     .difficulty-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 0.75rem;
-      margin-bottom: 1.5rem;
     }
 
     .diff-btn {
@@ -94,57 +124,22 @@
     .btn-hard { background-color: #f97316; }
     .btn-legendary { background-color: #ef4444; color: #fff; }
 
-    .primary-btn {
-      width: 100%;
-      padding: 1rem;
-      background-color: #38bdf8;
-      color: #0f172a;
-      border: none;
-      border-radius: 0.5rem;
-      font-size: 1.125rem;
-      font-weight: bold;
-      cursor: pointer;
+    .diff-btn small {
+      font-size: 0.8rem;
+      font-weight: normal;
     }
 
-    .secondary-btn {
-      width: 100%;
-      padding: 1rem;
-      background-color: #334155;
-      color: #f8fafc;
-      border: 1px solid #475569;
-      border-radius: 0.5rem;
-      font-size: 1.125rem;
-      font-weight: bold;
-      cursor: pointer;
+    .hidden {
+      display: none !important;
     }
 
-    .button-group {
-      display: flex;
-      gap: 0.75rem;
-      margin-top: 1.5rem;
-    }
-
-    .countdown-overlay {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 3rem 0;
-    }
-
-    .countdown-number {
-      font-size: 6rem;
-      font-weight: 800;
-      color: #38bdf8;
-    }
-
+    /* Quiz Screen Styles */
     .quiz-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 1.5rem;
       padding-bottom: 0.75rem;
-      border-bottom: 1px solid #334155;
+      border-bottom: 1px solid var(--border);
     }
 
     .question-box {
@@ -154,8 +149,7 @@
       text-align: center;
       font-size: 2.5rem;
       font-weight: bold;
-      margin-bottom: 1.5rem;
-      border: 1px solid #334155;
+      border: 1px solid var(--border);
     }
 
     .options-grid {
@@ -190,35 +184,17 @@
       font-size: 1rem;
     }
 
-    .stats-card {
-      background-color: #0f172a;
-      border-radius: 0.5rem;
-      padding: 1rem;
-      margin-bottom: 1.5rem;
-    }
-
-    .stat-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 0.5rem 0;
-      border-bottom: 1px solid #1e293b;
-    }
-
-    .stat-row:last-child {
-      border-bottom: none;
-    }
-
+    /* Leaderboard Styling */
     .tabs {
       display: flex;
       gap: 0.5rem;
-      margin-bottom: 0.75rem;
     }
 
     .tab-btn {
       flex: 1;
       padding: 0.5rem;
       background-color: #0f172a;
-      border: 1px solid #334155;
+      border: 1px solid var(--border);
       color: #94a3b8;
       border-radius: 0.375rem;
       cursor: pointer;
@@ -226,7 +202,7 @@
     }
 
     .tab-btn.active {
-      background-color: #38bdf8;
+      background-color: var(--accent);
       color: #0f172a;
       font-weight: bold;
     }
@@ -237,8 +213,7 @@
       padding: 0.5rem;
       max-height: 240px;
       overflow-y: auto;
-      margin-bottom: 1.25rem;
-      border: 1px solid #334155;
+      border: 1px solid var(--border);
     }
 
     .leaderboard-item {
@@ -256,19 +231,35 @@
 
     .leaderboard-item.highlight {
       background-color: #1e293b;
-      color: #38bdf8;
+      color: var(--accent);
       font-weight: bold;
       border-radius: 0.25rem;
     }
 
+    .player-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+
     .player-tag {
       background-color: #334155;
-      color: #38bdf8;
+      color: var(--accent);
       padding: 0.15rem 0.4rem;
       border-radius: 0.25rem;
       font-size: 0.75rem;
       font-family: monospace;
       margin-left: 0.3rem;
+    }
+
+    .player-subtext {
+      font-size: 0.75rem;
+      color: #94a3b8;
+    }
+
+    .player-score {
+      text-align: right;
+      font-weight: 600;
     }
 
     .empty-state {
@@ -278,45 +269,36 @@
       font-size: 0.875rem;
     }
 
-    .player-meta {
+    .stats-card {
+      background-color: #0f172a;
+      border-radius: 0.5rem;
+      padding: 1rem;
+      border: 1px solid var(--border);
+    }
+
+    .stat-row {
       display: flex;
-      flex-direction: column;
-      gap: 0.15rem;
+      justify-content: space-between;
+      padding: 0.5rem 0;
+      border-bottom: 1px solid #1e293b;
     }
 
-    .player-subtext {
-      font-size: 0.75rem;
-      color: #94a3b8;
+    .stat-row:last-child {
+      border-bottom: none;
     }
 
-    .highlight .player-subtext {
-      color: #7dd3fc;
-    }
-
-    .player-score {
-      text-align: right;
-      font-weight: 600;
-    }
-
-    .section-divider {
-      border: 0;
-      border-top: 1px solid #334155;
-      margin: 1.5rem 0;
-    }
-
-    .hidden {
-      display: none !important;
+    .button-group {
+      display: flex;
+      gap: 0.75rem;
     }
   </style>
 
-  <!-- Firebase Web SDK -->
+  <!-- Firebase SDKs -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // -----------------------------------------------------------------
-    // PASTE YOUR FIREBASE KEYS HERE FROM YOUR FIREBASE CONSOLE
-    // -----------------------------------------------------------------
+    // FIXME: Replace with your actual Firebase configuration keys
     const firebaseConfig = {
       apiKey: "AIzaSyD6w7t0tcePPixd_jHNDu4ki603SjGsoSU",
   authDomain: "pintar-sifir.firebaseapp.com",
@@ -335,12 +317,11 @@
     window.collection = collection;
     window.getDocs = getDocs;
     window.query = query;
+    window.where = where;
     window.orderBy = orderBy;
     window.limit = limit;
-    window.where = where;
     window.serverTimestamp = serverTimestamp;
 
-    // Immediately trigger leaderboard load after Firebase initialization completes
     if (typeof loadHomeLeaderboard === 'function') {
       loadHomeLeaderboard();
     }
@@ -348,53 +329,59 @@
 </head>
 <body>
 
-  <div class="card">
-    <!-- SETUP / HOME SCREEN -->
-    <div id="setup-screen">
-      <h1>Pintar Sifir Bersama Cikgu Farid</h1>
-      
-      <div class="form-group">
-        <label for="player-name">Player Name</label>
-        <input type="text" id="player-name" placeholder="Enter your name" required>
-      </div>
+<div class="container">
 
-      <div class="form-group">
-        <label for="player-class">Class</label>
-        <select id="player-class">
-          <option value="Year 1">Year 1</option>
-          <option value="Year 2">Year 2</option>
-          <option value="Year 3">Year 3</option>
-          <option value="Year 4">Year 4</option>
-          <option value="Year 5">Year 5</option>
-          <option value="Year 6">Year 6</option>
-        </select>
-      </div>
+  <!-- SETUP / MAIN SCREEN -->
+  <div id="setup-screen">
+    <h1>Pintar Sifir Bersama Cikgu Farid</h1>
+    
+    <div class="form-group" style="margin-top: 1rem;">
+      <label for="player-name">Player Name *</label>
+      <input type="text" id="player-name" placeholder="Enter your name" required>
+    </div>
 
-      <div class="form-group">
-        <label for="player-school">School</label>
-        <input type="text" id="player-school" placeholder="Enter school name (e.g. SK Taman Tun)" required>
-      </div>
+    <div class="form-group">
+      <label for="player-class">Class *</label>
+      <select id="player-class">
+        <option value="Year 1">Year 1</option>
+        <option value="Year 2">Year 2</option>
+        <option value="Year 3">Year 3</option>
+        <option value="Year 4">Year 4</option>
+        <option value="Year 5">Year 5</option>
+        <option value="Year 6">Year 6</option>
+      </select>
+    </div>
 
-      <div class="form-group">
-        <label for="player-state">State</label>
-        <select id="player-state">
-          <option value="Johor">Johor</option>
-          <option value="Kedah">Kedah</option>
-          <option value="Kelantan">Kelantan</option>
-          <option value="Melaka">Melaka</option>
-          <option value="Negeri Sembilan">Negeri Sembilan</option>
-          <option value="Pahang">Pahang</option>
-          <option value="Perak">Perak</option>
-          <option value="Perlis">Perlis</option>
-          <option value="Pulau Pinang">Pulau Pinang</option>
-          <option value="Sabah">Sabah</option>
-          <option value="Sarawak">Sarawak</option>
-          <option value="Selangor">Selangor</option>
-          <option value="Terengganu">Terengganu</option>
-          <option value="W.P. Kuala Lumpur">W.P. Kuala Lumpur</option>
-        </select>
-      </div>
+    <div class="form-group">
+      <label for="player-school">School Name *</label>
+      <input type="text" id="player-school" placeholder="e.g. SK Taman Tun" required>
+    </div>
 
+    <!-- Compulsory State Selection (No Default) -->
+    <div class="form-group">
+      <label for="player-state">State *</label>
+      <select id="player-state" required>
+        <option value="" disabled selected>-- Select State --</option>
+        <option value="Johor">Johor</option>
+        <option value="Kedah">Kedah</option>
+        <option value="Kelantan">Kelantan</option>
+        <option value="Melaka">Melaka</option>
+        <option value="Negeri Sembilan">Negeri Sembilan</option>
+        <option value="Pahang">Pahang</option>
+        <option value="Penang">Penang</option>
+        <option value="Perak">Perak</option>
+        <option value="Perlis">Perlis</option>
+        <option value="Sabah">Sabah</option>
+        <option value="Sarawak">Sarawak</option>
+        <option value="Selangor">Selangor</option>
+        <option value="Terengganu">Terengganu</option>
+        <option value="W.P. Kuala Lumpur">W.P. Kuala Lumpur</option>
+        <option value="W.P. Labuan">W.P. Labuan</option>
+        <option value="W.P. Putrajaya">W.P. Putrajaya</option>
+      </select>
+    </div>
+
+    <div class="form-group">
       <label>Select Difficulty (Time per question)</label>
       <div class="difficulty-grid">
         <button type="button" class="diff-btn btn-easy selected" onclick="selectDifficulty('easy', 60, this)">Easy<br><small>(60 seconds)</small></button>
@@ -402,445 +389,478 @@
         <button type="button" class="diff-btn btn-hard" onclick="selectDifficulty('hard', 15, this)">Hard<br><small>(15 seconds)</small></button>
         <button type="button" class="diff-btn btn-legendary" onclick="selectDifficulty('legendary', 5, this)">Legendary<br><small>(5 seconds)</small></button>
       </div>
+    </div>
 
-      <button type="button" class="primary-btn" onclick="startCountdown()">Start Game</button>
+    <button type="button" class="btn-primary" onclick="startGame()" style="margin-top: 0.5rem;">Start Game</button>
 
-      <hr class="section-divider">
-
-      <!-- FRONT PAGE LEADERBOARD -->
+    <!-- Front Page Leaderboard -->
+    <div style="margin-top: 1.5rem;">
       <h3>🏆 Live National Rankings</h3>
+      <div class="form-group" style="margin: 0.5rem 0;">
+        <input type="text" id="home-search-input" placeholder="🔍 Search by name or 6-digit ID (e.g. #123456)..." oninput="filterHomeLeaderboard()">
+      </div>
       <div id="home-leaderboard-container" class="leaderboard-list">
         <div class="empty-state">Loading live cloud rankings...</div>
       </div>
     </div>
+  </div>
 
-    <!-- COUNTDOWN SCREEN -->
-    <div id="countdown-screen" class="countdown-overlay hidden">
-      <h2>Get Ready!</h2>
-      <div id="countdown-number" class="countdown-number">5</div>
+  <!-- QUIZ SCREEN -->
+  <div id="quiz-screen" class="hidden">
+    <div class="quiz-header">
+      <div>Question <span id="q-num">1</span>/10</div>
+      <div>Time Left: <span id="timer-display" style="color: var(--accent); font-weight: bold;">0</span>s</div>
     </div>
 
-    <!-- QUIZ SCREEN -->
-    <div id="quiz-screen" class="hidden">
-      <div class="quiz-header">
-        <div>Question <span id="q-num">1</span>/10</div>
-        <div>Time Left: <span id="timer-display">0</span>s</div>
-      </div>
+    <div class="question-box" id="question-text">2 × 2 = ?</div>
 
-      <div class="question-box" id="question-text">2 × 2 = ?</div>
-
-      <div class="options-grid">
-        <button type="button" class="option-btn option-a" onclick="submitAnswer(0)"><span class="option-prefix">A</span> <span id="opt-0">0</span></button>
-        <button type="button" class="option-btn option-b" onclick="submitAnswer(1)"><span class="option-prefix">B</span> <span id="opt-1">0</span></button>
-        <button type="button" class="option-btn option-c" onclick="submitAnswer(2)"><span class="option-prefix">C</span> <span id="opt-2">0</span></button>
-        <button type="button" class="option-btn option-d" onclick="submitAnswer(3)"><span class="option-prefix">D</span> <span id="opt-3">0</span></button>
-      </div>
-    </div>
-
-    <!-- RESULTS SCREEN -->
-    <div id="result-screen" class="hidden">
-      <h2>Game Complete!</h2>
-
-      <div class="stats-card">
-        <div class="stat-row">
-          <span>Player ID Tag:</span>
-          <strong id="res-player-tag">#----</strong>
-        </div>
-        <div class="stat-row">
-          <span>Accuracy:</span>
-          <strong id="res-accuracy">0% (0/10)</strong>
-        </div>
-        <div class="stat-row">
-          <span>Avg. Speed per Question:</span>
-          <strong id="res-speed">0.00s</strong>
-        </div>
-        <div class="stat-row">
-          <span>Total Time Spent:</span>
-          <strong id="res-total-time">0.00s</strong>
-        </div>
-      </div>
-
-      <h3>Leaderboards</h3>
-      <div class="tabs">
-        <button type="button" class="tab-btn active" onclick="switchTab('all', event)">Overall</button>
-        <button type="button" class="tab-btn" onclick="switchTab('class', event)"><span id="tab-class-label">Class</span></button>
-        <button type="button" class="tab-btn" onclick="switchTab('school', event)">School</button>
-        <button type="button" class="tab-btn" onclick="switchTab('state', event)">State</button>
-      </div>
-
-      <div id="leaderboard-container" class="leaderboard-list">
-        <div class="empty-state">Loading live cloud rankings...</div>
-      </div>
-
-      <div class="button-group">
-        <button type="button" class="primary-btn" onclick="restartGame()">Restart Game</button>
-        <button type="button" class="secondary-btn" onclick="exitToMain()">Exit to Main</button>
-      </div>
+    <div class="options-grid">
+      <button type="button" class="option-btn option-a" onclick="submitAnswer(0)"><span class="option-prefix">A</span> <span id="opt-0">0</span></button>
+      <button type="button" class="option-btn option-b" onclick="submitAnswer(1)"><span class="option-prefix">B</span> <span id="opt-1">0</span></button>
+      <button type="button" class="option-btn option-c" onclick="submitAnswer(2)"><span class="option-prefix">C</span> <span id="opt-2">0</span></button>
+      <button type="button" class="option-btn option-d" onclick="submitAnswer(3)"><span class="option-prefix">D</span> <span id="opt-3">0</span></button>
     </div>
   </div>
 
-  <script>
-    let player = { name: '', tag: '', classVal: 'Year 1', school: '', state: 'Johor' };
-    let timePerQuestion = 60;
-    let currentQuestion = 0;
-    let score = 0;
-    let questions = [];
-    let qTimer = null;
-    let cdInterval = null;
-    let qTimeLeft = 0;
-    let questionStartTime = 0;
-    let questionTimes = [];
-    let lastDocId = null;
+  <!-- RESULTS SCREEN -->
+  <div id="result-screen" class="hidden">
+    <h2>Game Complete!</h2>
 
-    function generatePlayerTag() {
-      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-      let result = '#';
-      for (let i = 0; i < 4; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      return result;
+    <div class="stats-card">
+      <div class="stat-row">
+        <span>Player ID Tag:</span>
+        <strong id="res-player-tag" style="color: var(--accent);">#000000</strong>
+      </div>
+      <div class="stat-row">
+        <span>Accuracy:</span>
+        <strong id="res-accuracy">0% (0/10)</strong>
+      </div>
+      <div class="stat-row">
+        <span>Avg. Speed per Question:</span>
+        <strong id="res-speed">0.00s</strong>
+      </div>
+      <div class="stat-row">
+        <span>Total Time Spent:</span>
+        <strong id="res-total-time">0.00s</strong>
+      </div>
+    </div>
+
+    <h3>Leaderboards</h3>
+    <div class="tabs">
+      <button type="button" class="tab-btn active" onclick="switchTab('all', event)">Overall</button>
+      <button type="button" class="tab-btn" onclick="switchTab('class', event)"><span id="tab-class-label">Class</span></button>
+      <button type="button" class="tab-btn" onclick="switchTab('school', event)">School</button>
+      <button type="button" class="tab-btn" onclick="switchTab('state', event)">State</button>
+    </div>
+
+    <div class="form-group">
+      <input type="text" id="results-search-input" placeholder="🔍 Search tab by name or ID..." oninput="filterResultsLeaderboard()">
+    </div>
+
+    <div id="leaderboard-container" class="leaderboard-list">
+      <div class="empty-state">Loading live cloud rankings...</div>
+    </div>
+
+    <div class="button-group">
+      <button type="button" class="btn-primary" onclick="restartGame()">Restart Game</button>
+      <button type="button" class="btn-secondary" onclick="exitToMain()">Exit to Main</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let player = { name: '', tag: '', classVal: 'Year 1', school: '', state: '' };
+  let timePerQuestion = 60;
+  let currentQuestion = 0;
+  let score = 0;
+  let questions = [];
+  let qTimer = null;
+  let qTimeLeft = 0;
+  let questionStartTime = 0;
+  let questionTimes = [];
+  let lastDocId = null;
+
+  let homeLeaderboardData = [];
+  let currentTabLeaderboardData = [];
+
+  // Generate 6-digit numeric tag
+  function generatePlayerTag() {
+    const randomSixDigits = Math.floor(100000 + Math.random() * 900000);
+    return `#${randomSixDigits}`;
+  }
+
+  function clearAllTimers() {
+    if (qTimer) clearInterval(qTimer);
+  }
+
+  function selectDifficulty(diff, time, element) {
+    timePerQuestion = time; // Sets timer per question (e.g., 5s for Legendary)
+    document.querySelectorAll('.diff-btn').forEach(btn => btn.classList.remove('selected'));
+    element.classList.add('selected');
+  }
+
+  function startGame() {
+    const name = document.getElementById('player-name').value.trim();
+    const school = document.getElementById('player-school').value.trim();
+    const state = document.getElementById('player-state').value;
+
+    if (!name || !school || !state) {
+      alert('Please fill in all fields, including selecting your State!');
+      return;
     }
 
-    function clearAllTimers() {
-      if (qTimer) clearInterval(qTimer);
-      if (cdInterval) clearInterval(cdInterval);
-    }
+    player.name = name;
+    player.tag = generatePlayerTag();
+    player.classVal = document.getElementById('player-class').value;
+    player.school = school;
+    player.state = state;
 
-    function selectDifficulty(diff, time, element) {
-      timePerQuestion = time;
-      document.querySelectorAll('.diff-btn').forEach(btn => btn.classList.remove('selected'));
-      element.classList.add('selected');
-    }
+    document.getElementById('setup-screen').classList.add('hidden');
+    document.getElementById('quiz-screen').classList.remove('hidden');
 
-    function startCountdown() {
-      const name = document.getElementById('player-name').value.trim();
-      const school = document.getElementById('player-school').value.trim();
+    initGame();
+  }
 
-      if (!name || !school) {
-        alert('Please fill in all fields before starting!');
-        return;
-      }
+  function generateQuestions() {
+    questions = [];
+    for (let i = 0; i < 10; i++) {
+      const num1 = Math.floor(Math.random() * 11) + 2;
+      const num2 = Math.floor(Math.random() * 11) + 2;
+      const correct = num1 * num2;
 
-      player.name = name;
-      player.tag = generatePlayerTag();
-      player.classVal = document.getElementById('player-class').value;
-      player.school = school;
-      player.state = document.getElementById('player-state').value;
+      let optionsSet = new Set();
+      optionsSet.add(correct);
 
-      document.getElementById('setup-screen').classList.add('hidden');
-      runCountdown();
-    }
+      const offsets = [-12, -10, -5, -4, -3, -2, -1, 1, 2, 3, 4, 5, 10, 12];
+      offsets.sort(() => Math.random() - 0.5);
 
-    function runCountdown() {
-      clearAllTimers();
-      document.getElementById('countdown-screen').classList.remove('hidden');
-
-      let count = 5;
-      const cdElem = document.getElementById('countdown-number');
-      cdElem.textContent = count;
-
-      cdInterval = setInterval(() => {
-        count--;
-        if (count > 0) {
-          cdElem.textContent = count;
-        } else {
-          clearInterval(cdInterval);
-          document.getElementById('countdown-screen').classList.add('hidden');
-          initGame();
+      for (let offset of offsets) {
+        const fake = correct + offset;
+        if (fake > 0 && fake !== correct) {
+          optionsSet.add(fake);
         }
-      }, 1000);
-    }
-
-    function generateQuestions() {
-      questions = [];
-      for (let i = 0; i < 10; i++) {
-        const num1 = Math.floor(Math.random() * 11) + 2;
-        const num2 = Math.floor(Math.random() * 11) + 2;
-        const correct = num1 * num2;
-
-        let optionsSet = new Set();
-        optionsSet.add(correct);
-
-        const offsets = [-12, -10, -5, -4, -3, -2, -1, 1, 2, 3, 4, 5, 10, 12];
-        offsets.sort(() => Math.random() - 0.5);
-
-        for (let offset of offsets) {
-          const fake = correct + offset;
-          if (fake > 0 && fake !== correct) {
-            optionsSet.add(fake);
-          }
-          if (optionsSet.size === 4) break;
-        }
-
-        const optionsArray = Array.from(optionsSet).sort(() => Math.random() - 0.5);
-
-        questions.push({ num1, num2, correct, options: optionsArray });
-      }
-    }
-
-    function initGame() {
-      score = 0;
-      currentQuestion = 0;
-      questionTimes = [];
-
-      generateQuestions();
-      document.getElementById('quiz-screen').classList.remove('hidden');
-      loadQuestion();
-    }
-
-    function loadQuestion() {
-      clearAllTimers();
-
-      if (currentQuestion >= 10) {
-        endGame();
-        return;
+        if (optionsSet.size === 4) break;
       }
 
-      qTimeLeft = timePerQuestion;
-      document.getElementById('timer-display').textContent = qTimeLeft;
+      const optionsArray = Array.from(optionsSet).sort(() => Math.random() - 0.5);
 
-      const q = questions[currentQuestion];
-      document.getElementById('q-num').textContent = currentQuestion + 1;
-      document.getElementById('question-text').textContent = `${q.num1} × ${q.num2} = ?`;
+      questions.push({ num1, num2, correct, options: optionsArray });
+    }
+  }
 
-      for (let i = 0; i < 4; i++) {
-        document.getElementById(`opt-${i}`).textContent = q.options[i];
-      }
+  function initGame() {
+    score = 0;
+    currentQuestion = 0;
+    questionTimes = [];
 
-      questionStartTime = Date.now();
+    generateQuestions();
+    loadQuestion();
+  }
 
-      qTimer = setInterval(() => {
-        qTimeLeft--;
-        document.getElementById('timer-display').textContent = Math.max(0, qTimeLeft);
-        
-        if (qTimeLeft <= 0) {
-          clearAllTimers();
-          questionTimes.push(timePerQuestion);
-          nextQuestion();
-        }
-      }, 1000);
+  function loadQuestion() {
+    clearAllTimers();
+
+    if (currentQuestion >= 10) {
+      endGame();
+      return;
     }
 
-    function submitAnswer(optionIndex) {
-      clearAllTimers();
+    qTimeLeft = timePerQuestion;
+    document.getElementById('timer-display').textContent = qTimeLeft;
 
-      const elapsed = Math.min(timePerQuestion, (Date.now() - questionStartTime) / 1000);
-      questionTimes.push(elapsed);
+    const q = questions[currentQuestion];
+    document.getElementById('q-num').textContent = currentQuestion + 1;
+    document.getElementById('question-text').textContent = `${q.num1} × ${q.num2} = ?`;
 
-      const q = questions[currentQuestion];
-      if (q.options[optionIndex] === q.correct) {
-        score++;
-      }
-
-      nextQuestion();
+    for (let i = 0; i < 4; i++) {
+      document.getElementById(`opt-${i}`).textContent = q.options[i];
     }
 
-    function nextQuestion() {
-      currentQuestion++;
-      if (currentQuestion < 10) {
-        loadQuestion();
-      } else {
-        endGame();
-      }
-    }
+    questionStartTime = Date.now();
 
-    async function endGame() {
-      clearAllTimers();
-      document.getElementById('quiz-screen').classList.add('hidden');
-      document.getElementById('result-screen').classList.remove('hidden');
-
-      const totalTimeSpent = questionTimes.reduce((a, b) => a + b, 0);
-      const avgSpeed = questionTimes.length > 0 ? (totalTimeSpent / questionTimes.length) : 0;
-      const accuracyPct = Math.round((score / 10) * 100);
-
-      document.getElementById('res-player-tag').textContent = player.tag;
-      document.getElementById('res-accuracy').textContent = `${accuracyPct}% (${score}/10)`;
-      document.getElementById('res-speed').textContent = `${avgSpeed.toFixed(2)}s`;
-      document.getElementById('res-total-time').textContent = `${totalTimeSpent.toFixed(2)}s`;
-      document.getElementById('tab-class-label').textContent = player.classVal;
-
-      await saveScoreToCloud(score, avgSpeed);
+    qTimer = setInterval(() => {
+      qTimeLeft--;
+      document.getElementById('timer-display').textContent = Math.max(0, qTimeLeft);
       
-      const firstTab = document.querySelector('.tab-btn');
-      if (firstTab) {
-        switchTab('all', { target: firstTab });
+      if (qTimeLeft <= 0) {
+        clearAllTimers();
+        questionTimes.push(timePerQuestion);
+        nextQuestion();
       }
+    }, 1000);
+  }
+
+  function submitAnswer(optionIndex) {
+    clearAllTimers();
+
+    const elapsed = Math.min(timePerQuestion, (Date.now() - questionStartTime) / 1000);
+    questionTimes.push(elapsed);
+
+    const q = questions[currentQuestion];
+    if (q.options[optionIndex] === q.correct) {
+      score++;
     }
 
-    async function saveScoreToCloud(userScore, userAvgSpeed) {
-      if (!window.db) return;
+    nextQuestion();
+  }
 
-      try {
-        const docRef = await window.addDoc(window.collection(window.db, "leaderboard"), {
-          name: player.name,
-          tag: player.tag,
-          classVal: player.classVal,
-          school: player.school,
-          schoolLower: player.school.toLowerCase(),
-          state: player.state,
-          score: userScore,
-          speed: userAvgSpeed,
-          createdAt: window.serverTimestamp()
-        });
-        lastDocId = docRef.id;
-      } catch (e) {
-        console.error("Error saving score to Firebase: ", e);
-      }
+  function nextQuestion() {
+    currentQuestion++;
+    if (currentQuestion < 10) {
+      loadQuestion();
+    } else {
+      endGame();
+    }
+  }
+
+  async function endGame() {
+    clearAllTimers();
+    document.getElementById('quiz-screen').classList.add('hidden');
+    document.getElementById('result-screen').classList.remove('hidden');
+
+    const totalTimeSpent = questionTimes.reduce((a, b) => a + b, 0);
+    const avgSpeed = questionTimes.length > 0 ? (totalTimeSpent / questionTimes.length) : 0;
+    const accuracyPct = Math.round((score / 10) * 100);
+
+    document.getElementById('res-player-tag').textContent = player.tag;
+    document.getElementById('res-accuracy').textContent = `${accuracyPct}% (${score}/10)`;
+    document.getElementById('res-speed').textContent = `${avgSpeed.toFixed(2)}s`;
+    document.getElementById('res-total-time').textContent = `${totalTimeSpent.toFixed(2)}s`;
+    document.getElementById('tab-class-label').textContent = player.classVal;
+
+    await saveScoreToCloud(score, avgSpeed);
+    switchTab('all');
+  }
+
+  async function saveScoreToCloud(userScore, userAvgSpeed) {
+    if (!window.db) return;
+
+    try {
+      const docRef = await window.addDoc(window.collection(window.db, "leaderboard"), {
+        name: player.name,
+        tag: player.tag,
+        classVal: player.classVal,
+        school: player.school,
+        schoolLower: player.school.toLowerCase(),
+        state: player.state,
+        score: userScore,
+        speed: userAvgSpeed,
+        createdAt: window.serverTimestamp()
+      });
+      lastDocId = docRef.id;
+    } catch (e) {
+      console.error("Error saving score to Firebase: ", e);
+    }
+  }
+
+  // Home Leaderboard Fetching & Filtering
+  async function loadHomeLeaderboard() {
+    const container = document.getElementById('home-leaderboard-container');
+    if (!container) return;
+
+    if (!window.db) {
+      setTimeout(loadHomeLeaderboard, 300);
+      return;
     }
 
-    async function loadHomeLeaderboard() {
-      const container = document.getElementById('home-leaderboard-container');
-      if (!container) return;
+    try {
+      let leaderboardRef = window.collection(window.db, "leaderboard");
+      let q = window.query(
+        leaderboardRef, 
+        window.orderBy("score", "desc"), 
+        window.orderBy("speed", "asc"), 
+        window.limit(50)
+      );
 
-      if (!window.db) {
-        setTimeout(loadHomeLeaderboard, 300);
-        return;
-      }
+      const querySnapshot = await window.getDocs(q);
+      homeLeaderboardData = [];
 
-      try {
-        let leaderboardRef = window.collection(window.db, "leaderboard");
-        let q = window.query(
+      querySnapshot.forEach((doc) => {
+        homeLeaderboardData.push({ id: doc.id, ...doc.data() });
+      });
+
+      renderHomeLeaderboard(homeLeaderboardData);
+    } catch (err) {
+      console.error("Front page leaderboard error:", err);
+      container.innerHTML = `<div class="empty-state">Unable to load rankings. Check database connections.</div>`;
+    }
+  }
+
+  function renderHomeLeaderboard(data) {
+    const container = document.getElementById('home-leaderboard-container');
+    container.innerHTML = '';
+
+    if (!data || data.length === 0) {
+      container.innerHTML = `<div class="empty-state">No matching players found.</div>`;
+      return;
+    }
+
+    data.forEach((item, index) => {
+      const tagDisplay = item.tag ? `<span class="player-tag">${item.tag}</span>` : '';
+      const row = document.createElement('div');
+      row.className = 'leaderboard-item';
+      row.innerHTML = `
+        <div class="player-meta">
+          <div><strong>#${index + 1} ${item.name}</strong>${tagDisplay}</div>
+          <div class="player-subtext">${item.school} • ${item.classVal} • ${item.state}</div>
+        </div>
+        <div class="player-score">
+          <div>${item.score}/10 (${Math.round((item.score / 10) * 100)}%)</div>
+          <div class="player-subtext">${item.speed ? item.speed.toFixed(2) : 0}s avg</div>
+        </div>
+      `;
+      container.appendChild(row);
+    });
+  }
+
+  function filterHomeLeaderboard() {
+    const queryTerm = document.getElementById('home-search-input').value.toLowerCase().trim();
+    if (!queryTerm) {
+      renderHomeLeaderboard(homeLeaderboardData);
+      return;
+    }
+
+    const filtered = homeLeaderboardData.filter(item => {
+      const matchName = item.name && item.name.toLowerCase().includes(queryTerm);
+      const matchTag = item.tag && item.tag.toLowerCase().includes(queryTerm);
+      return matchName || matchTag;
+    });
+
+    renderHomeLeaderboard(filtered);
+  }
+
+  // Results Screen Leaderboard Fetching & Filtering
+  async function switchTab(category, evt) {
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    if (evt && evt.target) {
+      evt.target.classList.add('active');
+    }
+
+    const searchInput = document.getElementById('results-search-input');
+    if (searchInput) searchInput.value = '';
+
+    const container = document.getElementById('leaderboard-container');
+    container.innerHTML = `<div class="empty-state">Loading live cloud rankings...</div>`;
+
+    if (!window.db) {
+      container.innerHTML = `<div class="empty-state">Database not connected. Configure Firebase keys!</div>`;
+      return;
+    }
+
+    try {
+      let leaderboardRef = window.collection(window.db, "leaderboard");
+      let q;
+
+      if (category === 'class') {
+        q = window.query(
+          leaderboardRef, 
+          window.where("classVal", "==", player.classVal), 
+          window.orderBy("score", "desc"), 
+          window.orderBy("speed", "asc"), 
+          window.limit(50)
+        );
+      } else if (category === 'school') {
+        q = window.query(
+          leaderboardRef, 
+          window.where("schoolLower", "==", player.school.toLowerCase()), 
+          window.where("state", "==", player.state), 
+          window.orderBy("score", "desc"), 
+          window.orderBy("speed", "asc"), 
+          window.limit(50)
+        );
+      } else if (category === 'state') {
+        q = window.query(
+          leaderboardRef, 
+          window.where("state", "==", player.state), 
+          window.orderBy("score", "desc"), 
+          window.orderBy("speed", "asc"), 
+          window.limit(50)
+        );
+      } else {
+        q = window.query(
           leaderboardRef, 
           window.orderBy("score", "desc"), 
           window.orderBy("speed", "asc"), 
-          window.limit(10)
+          window.limit(50)
         );
-
-        const querySnapshot = await window.getDocs(q);
-        container.innerHTML = '';
-
-        if (querySnapshot.empty) {
-          container.innerHTML = `<div class="empty-state">No recorded scores yet.<br>Be the first to set a record!</div>`;
-          return;
-        }
-
-        let rank = 1;
-        querySnapshot.forEach((doc) => {
-          const item = doc.data();
-          const tagDisplay = item.tag ? `<span class="player-tag">${item.tag}</span>` : '';
-          const row = document.createElement('div');
-          row.className = 'leaderboard-item';
-          row.innerHTML = `
-            <div class="player-meta">
-              <div><strong>#${rank} ${item.name}</strong>${tagDisplay}</div>
-              <div class="player-subtext">${item.school} • ${item.classVal} • ${item.state}</div>
-            </div>
-            <div class="player-score">
-              <div>${item.score}/10 (${Math.round((item.score / 10) * 100)}%)</div>
-              <div class="player-subtext">${item.speed.toFixed(2)}s avg</div>
-            </div>
-          `;
-          container.appendChild(row);
-          rank++;
-        });
-      } catch (err) {
-        console.error("Front page leaderboard error:", err);
-        container.innerHTML = `<div class="empty-state">Unable to load rankings. Check database connections.</div>`;
-      }
-    }
-
-    async function switchTab(category, evt) {
-      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-      if (evt && evt.target) {
-        evt.target.classList.add('active');
       }
 
-      const container = document.getElementById('leaderboard-container');
-      container.innerHTML = `<div class="empty-state">Loading live cloud rankings...</div>`;
+      const querySnapshot = await window.getDocs(q);
+      currentTabLeaderboardData = [];
 
-      if (!window.db) {
-        container.innerHTML = `<div class="empty-state">Database not connected. Configure Firebase keys!</div>`;
-        return;
-      }
+      querySnapshot.forEach((doc) => {
+        currentTabLeaderboardData.push({ docId: doc.id, ...doc.data() });
+      });
 
-      try {
-        let leaderboardRef = window.collection(window.db, "leaderboard");
-        let q;
+      renderResultsLeaderboard(currentTabLeaderboardData);
+    } catch (err) {
+      console.error("Cloud fetch error:", err);
+      container.innerHTML = `<div class="empty-state">Unable to load rankings. Check database security rules or network connection.</div>`;
+    }
+  }
 
-        if (category === 'class') {
-          q = window.query(
-            leaderboardRef, 
-            window.where("classVal", "==", player.classVal), 
-            window.orderBy("score", "desc"), 
-            window.orderBy("speed", "asc"), 
-            window.limit(10)
-          );
-        } else if (category === 'school') {
-          q = window.query(
-            leaderboardRef, 
-            window.where("schoolLower", "==", player.school.toLowerCase()), 
-            window.where("state", "==", player.state), 
-            window.orderBy("score", "desc"), 
-            window.orderBy("speed", "asc"), 
-            window.limit(10)
-          );
-        } else if (category === 'state') {
-          q = window.query(
-            leaderboardRef, 
-            window.where("state", "==", player.state), 
-            window.orderBy("score", "desc"), 
-            window.orderBy("speed", "asc"), 
-            window.limit(10)
-          );
-        } else {
-          q = window.query(
-            leaderboardRef, 
-            window.orderBy("score", "desc"), 
-            window.orderBy("speed", "asc"), 
-            window.limit(10)
-          );
-        }
+  function renderResultsLeaderboard(data) {
+    const container = document.getElementById('leaderboard-container');
+    container.innerHTML = '';
 
-        const querySnapshot = await window.getDocs(q);
-        container.innerHTML = '';
-
-        if (querySnapshot.empty) {
-          container.innerHTML = `<div class="empty-state">No recorded scores yet for this category.<br>Be the first to set a record!</div>`;
-          return;
-        }
-
-        let rank = 1;
-        querySnapshot.forEach((doc) => {
-          const item = doc.data();
-          const isCurrentGame = doc.id === lastDocId;
-          const tagDisplay = item.tag ? `<span class="player-tag">${item.tag}</span>` : '';
-          const row = document.createElement('div');
-          row.className = `leaderboard-item ${isCurrentGame ? 'highlight' : ''}`;
-          row.innerHTML = `
-            <div class="player-meta">
-              <div><strong>#${rank} ${item.name}</strong>${tagDisplay} ${isCurrentGame ? '(You)' : ''}</div>
-              <div class="player-subtext">${item.school} • ${item.classVal} • ${item.state}</div>
-            </div>
-            <div class="player-score">
-              <div>${item.score}/10 (${Math.round((item.score / 10) * 100)}%)</div>
-              <div class="player-subtext">${item.speed.toFixed(2)}s avg</div>
-            </div>
-          `;
-          container.appendChild(row);
-          rank++;
-        });
-      } catch (err) {
-        console.error("Cloud fetch error:", err);
-        container.innerHTML = `<div class="empty-state">Unable to load rankings. Check database security rules or network connection.</div>`;
-      }
+    if (!data || data.length === 0) {
+      container.innerHTML = `<div class="empty-state">No matching players found.</div>`;
+      return;
     }
 
-    function restartGame() {
-      document.getElementById('result-screen').classList.add('hidden');
-      runCountdown();
-    }
-
-    function exitToMain() {
-      clearAllTimers();
-      document.getElementById('result-screen').classList.add('hidden');
-      document.getElementById('setup-screen').classList.remove('hidden');
-      loadHomeLeaderboard();
-    }
-
-    // Backup trigger in case DOM renders before script execution
-    window.addEventListener('DOMContentLoaded', () => {
-      loadHomeLeaderboard();
+    data.forEach((item, index) => {
+      const isCurrentGame = item.docId === lastDocId;
+      const tagDisplay = item.tag ? `<span class="player-tag">${item.tag}</span>` : '';
+      const row = document.createElement('div');
+      row.className = `leaderboard-item ${isCurrentGame ? 'highlight' : ''}`;
+      row.innerHTML = `
+        <div class="player-meta">
+          <div><strong>#${index + 1} ${item.name}</strong>${tagDisplay} ${isCurrentGame ? '(You)' : ''}</div>
+          <div class="player-subtext">${item.school} • ${item.classVal} • ${item.state}</div>
+        </div>
+        <div class="player-score">
+          <div>${item.score}/10 (${Math.round((item.score / 10) * 100)}%)</div>
+          <div class="player-subtext">${item.speed ? item.speed.toFixed(2) : 0}s avg</div>
+        </div>
+      `;
+      container.appendChild(row);
     });
-  </script>
+  }
+
+  function filterResultsLeaderboard() {
+    const queryTerm = document.getElementById('results-search-input').value.toLowerCase().trim();
+    if (!queryTerm) {
+      renderResultsLeaderboard(currentTabLeaderboardData);
+      return;
+    }
+
+    const filtered = currentTabLeaderboardData.filter(item => {
+      const matchName = item.name && item.name.toLowerCase().includes(queryTerm);
+      const matchTag = item.tag && item.tag.toLowerCase().includes(queryTerm);
+      return matchName || matchTag;
+    });
+
+    renderResultsLeaderboard(filtered);
+  }
+
+  function restartGame() {
+    document.getElementById('result-screen').classList.add('hidden');
+    document.getElementById('quiz-screen').classList.remove('hidden');
+    initGame();
+  }
+
+  function exitToMain() {
+    clearAllTimers();
+    document.getElementById('result-screen').classList.add('hidden');
+    document.getElementById('setup-screen').classList.remove('hidden');
+    loadHomeLeaderboard();
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    loadHomeLeaderboard();
+  });
+</script>
+
 </body>
 </html>
