@@ -355,7 +355,7 @@
     window.serverTimestamp = serverTimestamp;
 
     if (typeof loadHomeLeaderboard === 'function') {
-      loadHomeLeaderboard('Year 1');
+      loadHomeLeaderboard('Overall');
     }
   </script>
 </head>
@@ -430,12 +430,13 @@
 
     <button type="button" class="btn-primary" onclick="startGame()" style="margin-top: 0.5rem;">Start Game</button>
 
-    <!-- Front Page Leaderboard by Year Level -->
+    <!-- Front Page Leaderboard with Top 100 -->
     <div style="margin-top: 1.5rem;">
-      <h3>🏆 Top 10 Leaderboard by Year</h3>
+      <h3>🏆 Top 100 Leaderboard Rankings</h3>
       
       <div class="tabs" style="margin-top: 0.5rem;">
-        <button type="button" class="tab-btn active home-tab" onclick="switchHomeTab('Year 1', event)">Year 1</button>
+        <button type="button" class="tab-btn active home-tab" onclick="switchHomeTab('Overall', event)">Overall</button>
+        <button type="button" class="tab-btn home-tab" onclick="switchHomeTab('Year 1', event)">Year 1</button>
         <button type="button" class="tab-btn home-tab" onclick="switchHomeTab('Year 2', event)">Year 2</button>
         <button type="button" class="tab-btn home-tab" onclick="switchHomeTab('Year 3', event)">Year 3</button>
         <button type="button" class="tab-btn home-tab" onclick="switchHomeTab('Year 4', event)">Year 4</button>
@@ -530,7 +531,7 @@
   let lastDocId = null;
 
   let homeLeaderboardData = [];
-  let currentHomeYear = 'Year 1';
+  let currentHomeYear = 'Overall';
   let currentTabLeaderboardData = [];
 
   function generatePlayerTag() {
@@ -723,8 +724,8 @@
     }
   }
 
-  // Switch tabs for Front-Page Leaderboard (Year 1 to Year 6)
-  function switchHomeTab(yearVal, evt) {
+  // Switch tabs for Front-Page Leaderboard
+  function switchHomeTab(targetVal, evt) {
     document.querySelectorAll('.home-tab').forEach(btn => btn.classList.remove('active'));
     if (evt && evt.target) {
       evt.target.classList.add('active');
@@ -733,31 +734,42 @@
     const searchInput = document.getElementById('home-search-input');
     if (searchInput) searchInput.value = '';
 
-    currentHomeYear = yearVal;
-    loadHomeLeaderboard(yearVal);
+    currentHomeYear = targetVal;
+    loadHomeLeaderboard(targetVal);
   }
 
-  // Fetch Top 10 Leaderboard per Year Level on Main Screen
-  async function loadHomeLeaderboard(yearVal = 'Year 1') {
+  // Fetch Leaderboard for Front Page (Top 100)
+  async function loadHomeLeaderboard(targetVal = 'Overall') {
     const container = document.getElementById('home-leaderboard-container');
     if (!container) return;
 
-    container.innerHTML = `<div class="empty-state">Loading Top 10 for ${yearVal}...</div>`;
+    container.innerHTML = `<div class="empty-state">Loading ${targetVal} top 100 rankings...</div>`;
 
     if (!window.db) {
-      setTimeout(() => loadHomeLeaderboard(yearVal), 300);
+      setTimeout(() => loadHomeLeaderboard(targetVal), 300);
       return;
     }
 
     try {
       let leaderboardRef = window.collection(window.db, "leaderboard");
-      let q = window.query(
-        leaderboardRef, 
-        window.where("classVal", "==", yearVal),
-        window.orderBy("score", "desc"), 
-        window.orderBy("speed", "asc"), 
-        window.limit(10)
-      );
+      let q;
+
+      if (targetVal === 'Overall') {
+        q = window.query(
+          leaderboardRef, 
+          window.orderBy("score", "desc"), 
+          window.orderBy("speed", "asc"), 
+          window.limit(100)
+        );
+      } else {
+        q = window.query(
+          leaderboardRef, 
+          window.where("classVal", "==", targetVal),
+          window.orderBy("score", "desc"), 
+          window.orderBy("speed", "asc"), 
+          window.limit(100)
+        );
+      }
 
       const querySnapshot = await window.getDocs(q);
       homeLeaderboardData = [];
@@ -816,7 +828,7 @@
     renderHomeLeaderboard(filtered);
   }
 
-  // Results Screen Leaderboard Fetching & Filtering
+  // Results Screen Leaderboard Fetching (Top 100)
   async function switchTab(category, evt) {
     document.querySelectorAll('#result-screen .tab-btn').forEach(btn => btn.classList.remove('active'));
     if (evt && evt.target) {
@@ -827,7 +839,7 @@
     if (searchInput) searchInput.value = '';
 
     const container = document.getElementById('leaderboard-container');
-    container.innerHTML = `<div class="empty-state">Loading live cloud rankings...</div>`;
+    container.innerHTML = `<div class="empty-state">Loading live top 100 cloud rankings...</div>`;
 
     if (!window.db) {
       container.innerHTML = `<div class="empty-state">Database not connected. Configure Firebase keys!</div>`;
@@ -844,7 +856,7 @@
           window.where("classVal", "==", player.classVal), 
           window.orderBy("score", "desc"), 
           window.orderBy("speed", "asc"), 
-          window.limit(50)
+          window.limit(100)
         );
       } else if (category === 'school') {
         q = window.query(
@@ -853,7 +865,7 @@
           window.where("state", "==", player.state), 
           window.orderBy("score", "desc"), 
           window.orderBy("speed", "asc"), 
-          window.limit(50)
+          window.limit(100)
         );
       } else if (category === 'state') {
         q = window.query(
@@ -861,14 +873,14 @@
           window.where("state", "==", player.state), 
           window.orderBy("score", "desc"), 
           window.orderBy("speed", "asc"), 
-          window.limit(50)
+          window.limit(100)
         );
       } else {
         q = window.query(
           leaderboardRef, 
           window.orderBy("score", "desc"), 
           window.orderBy("speed", "asc"), 
-          window.limit(50)
+          window.limit(100)
         );
       }
 
@@ -943,7 +955,7 @@
   }
 
   window.addEventListener('DOMContentLoaded', () => {
-    loadHomeLeaderboard('Year 1');
+    loadHomeLeaderboard('Overall');
   });
 </script>
 
