@@ -13,6 +13,8 @@
       --text: #f8fafc;
       --border: #334155;
       --accent: #38bdf8;
+      --success: #22c55e;
+      --error: #ef4444;
     }
 
     * {
@@ -179,6 +181,7 @@
       font-size: 2.5rem;
       font-weight: bold;
       border: 1px solid var(--border);
+      transition: all 0.2s ease;
     }
 
     .options-grid {
@@ -189,7 +192,7 @@
 
     .option-btn {
       padding: 1.25rem;
-      border: none;
+      border: 3px solid transparent;
       border-radius: 0.5rem;
       font-size: 1.25rem;
       font-weight: bold;
@@ -198,12 +201,34 @@
       text-align: left;
       display: flex;
       align-items: center;
+      transition: transform 0.1s ease, border-color 0.2s ease, background-color 0.2s ease;
     }
 
     .option-a { background-color: #2563eb; }
     .option-b { background-color: #16a34a; }
     .option-c { background-color: #9333ea; }
     .option-d { background-color: #e11d48; }
+
+    /* Answer Animations & Visual Cues */
+    .option-btn.btn-correct {
+      background-color: var(--success) !important;
+      border-color: #ffffff !important;
+      transform: scale(1.03);
+      box-shadow: 0 0 15px var(--success);
+    }
+
+    .option-btn.btn-wrong {
+      background-color: var(--error) !important;
+      border-color: #ffffff !important;
+      animation: shake 0.3s ease-in-out;
+      box-shadow: 0 0 15px var(--error);
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-6px); }
+      40%, 80% { transform: translateX(6px); }
+    }
 
     .option-prefix {
       background-color: rgba(0, 0, 0, 0.25);
@@ -328,7 +353,7 @@
   <!-- Firebase SDKs -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, query, where, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, onSnapshot, query, where, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     // FIXME: Replace with your actual Firebase configuration keys
     const firebaseConfig = {
@@ -347,15 +372,15 @@
     window.db = db;
     window.addDoc = addDoc;
     window.collection = collection;
-    window.getDocs = getDocs;
+    window.onSnapshot = onSnapshot;
     window.query = query;
     window.where = where;
     window.orderBy = orderBy;
     window.limit = limit;
     window.serverTimestamp = serverTimestamp;
 
-    if (typeof loadHomeLeaderboard === 'function') {
-      loadHomeLeaderboard('Overall');
+    if (typeof subscribeHomeLeaderboard === 'function') {
+      subscribeHomeLeaderboard('Overall');
     }
   </script>
 </head>
@@ -430,9 +455,9 @@
 
     <button type="button" class="btn-primary" onclick="startGame()" style="margin-top: 0.5rem;">Start Game</button>
 
-    <!-- Front Page Leaderboard with Top 100 -->
+    <!-- Front Page Leaderboard with Top 100 Live Updates -->
     <div style="margin-top: 1.5rem;">
-      <h3>🏆 Top 100 Leaderboard Rankings</h3>
+      <h3>🏆 Top 100 Live Leaderboard</h3>
       
       <div class="tabs" style="margin-top: 0.5rem;">
         <button type="button" class="tab-btn active home-tab" onclick="switchHomeTab('Overall', event)">Overall</button>
@@ -448,7 +473,7 @@
         <input type="text" id="home-search-input" placeholder="🔍 Search by name or 6-digit ID (e.g. #123456)..." oninput="filterHomeLeaderboard()">
       </div>
       <div id="home-leaderboard-container" class="leaderboard-list">
-        <div class="empty-state">Loading live rankings...</div>
+        <div class="empty-state">Connecting to live rankings...</div>
       </div>
     </div>
   </div>
@@ -506,7 +531,7 @@
     </div>
 
     <div id="leaderboard-container" class="leaderboard-list">
-      <div class="empty-state">Loading live cloud rankings...</div>
+      <div class="empty-state">Connecting to live cloud rankings...</div>
     </div>
 
     <div class="button-group">
@@ -529,10 +554,64 @@
   let questionStartTime = 0;
   let questionTimes = [];
   let lastDocId = null;
+  let isAnswering = false;
+
+  // Real-time Unsubscribe Handles
+  let unsubscribeHome = null;
+  let unsubscribeResults = null;
 
   let homeLeaderboardData = [];
   let currentHomeYear = 'Overall';
   let currentTabLeaderboardData = [];
+
+  // ==========================================
+  // WEB AUDIO API FOR SOUND CUES
+  // ==========================================
+  let audioCtx = null;
+
+  function initAudio() {
+    if (!audioCtx) {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (AudioContext) {
+        audioCtx = new AudioContext();
+      }
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }
+
+  function playSound(type) {
+    initAudio();
+    if (!audioCtx) return;
+
+    const now = audioCtx.currentTime;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    if (type === 'correct') {
+      // Pleasant high-pitched chime
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523.25, now); // C5
+      osc.frequency.exponentialRampToValueAtTime(880, now + 0.15); // A5
+      gain.gain.setValueAtTime(0.3, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+      osc.start(now);
+      osc.stop(now + 0.3);
+    } else if (type === 'wrong') {
+      // Low double-tone boop
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(180, now);
+      osc.frequency.setValueAtTime(130, now + 0.12);
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+      osc.start(now);
+      osc.stop(now + 0.3);
+    }
+  }
 
   function generatePlayerTag() {
     const randomSixDigits = Math.floor(100000 + Math.random() * 900000);
@@ -551,6 +630,7 @@
   }
 
   function startGame() {
+    initAudio(); // Activate audio context on first click
     const name = document.getElementById('player-name').value.trim();
     const school = document.getElementById('player-school').value.trim();
     const state = document.getElementById('player-state').value;
@@ -630,10 +710,17 @@
 
   function loadQuestion() {
     clearAllTimers();
+    isAnswering = false;
 
     if (currentQuestion >= 10) {
       endGame();
       return;
+    }
+
+    // Reset Option Button Styles
+    for (let i = 0; i < 4; i++) {
+      const btn = document.querySelectorAll('.option-btn')[i];
+      btn.classList.remove('btn-correct', 'btn-wrong');
     }
 
     qTimeLeft = timePerQuestion;
@@ -655,6 +742,7 @@
       
       if (qTimeLeft <= 0) {
         clearAllTimers();
+        playSound('wrong');
         questionTimes.push(timePerQuestion);
         nextQuestion();
       }
@@ -662,17 +750,35 @@
   }
 
   function submitAnswer(optionIndex) {
+    if (isAnswering) return;
+    isAnswering = true;
     clearAllTimers();
 
     const elapsed = Math.min(timePerQuestion, (Date.now() - questionStartTime) / 1000);
     questionTimes.push(elapsed);
 
     const q = questions[currentQuestion];
+    const selectedBtn = document.querySelectorAll('.option-btn')[optionIndex];
+
     if (q.options[optionIndex] === q.correct) {
       score++;
+      playSound('correct');
+      selectedBtn.classList.add('btn-correct');
+    } else {
+      playSound('wrong');
+      selectedBtn.classList.add('btn-wrong');
+      // Highlight correct answer for feedback
+      q.options.forEach((opt, idx) => {
+        if (opt === q.correct) {
+          document.querySelectorAll('.option-btn')[idx].classList.add('btn-correct');
+        }
+      });
     }
 
-    nextQuestion();
+    // Brief delay to allow student to see visual cue
+    setTimeout(() => {
+      nextQuestion();
+    }, 800);
   }
 
   function nextQuestion() {
@@ -735,18 +841,25 @@
     if (searchInput) searchInput.value = '';
 
     currentHomeYear = targetVal;
-    loadHomeLeaderboard(targetVal);
+    subscribeHomeLeaderboard(targetVal);
   }
 
-  // Fetch Leaderboard for Front Page (Top 100)
-  async function loadHomeLeaderboard(targetVal = 'Overall') {
+  // ==========================================
+  // REAL-TIME FIRESTORE LISTENERS (no-refresh)
+  // ==========================================
+
+  function subscribeHomeLeaderboard(targetVal = 'Overall') {
+    if (unsubscribeHome) {
+      unsubscribeHome(); // Unsubscribe previous listener
+    }
+
     const container = document.getElementById('home-leaderboard-container');
     if (!container) return;
 
-    container.innerHTML = `<div class="empty-state">Loading ${targetVal} top 100 rankings...</div>`;
+    container.innerHTML = `<div class="empty-state">Loading live ${targetVal} top 100 rankings...</div>`;
 
     if (!window.db) {
-      setTimeout(() => loadHomeLeaderboard(targetVal), 300);
+      setTimeout(() => subscribeHomeLeaderboard(targetVal), 300);
       return;
     }
 
@@ -771,17 +884,19 @@
         );
       }
 
-      const querySnapshot = await window.getDocs(q);
-      homeLeaderboardData = [];
-
-      querySnapshot.forEach((doc) => {
-        homeLeaderboardData.push({ id: doc.id, ...doc.data() });
+      unsubscribeHome = window.onSnapshot(q, (querySnapshot) => {
+        homeLeaderboardData = [];
+        querySnapshot.forEach((doc) => {
+          homeLeaderboardData.push({ id: doc.id, ...doc.data() });
+        });
+        filterHomeLeaderboard();
+      }, (err) => {
+        console.error("Front page live leaderboard error:", err);
+        container.innerHTML = `<div class="empty-state">Unable to load live rankings. Check database rules/indexes.</div>`;
       });
 
-      renderHomeLeaderboard(homeLeaderboardData);
     } catch (err) {
-      console.error("Front page leaderboard error:", err);
-      container.innerHTML = `<div class="empty-state">Unable to load rankings. Check database rules/indexes.</div>`;
+      console.error("Setup listener error:", err);
     }
   }
 
@@ -828,8 +943,12 @@
     renderHomeLeaderboard(filtered);
   }
 
-  // Results Screen Leaderboard Fetching (Top 100)
-  async function switchTab(category, evt) {
+  // Results Screen Real-time Leaderboard Listener
+  function switchTab(category, evt) {
+    if (unsubscribeResults) {
+      unsubscribeResults(); // Unsubscribe previous listener
+    }
+
     document.querySelectorAll('#result-screen .tab-btn').forEach(btn => btn.classList.remove('active'));
     if (evt && evt.target) {
       evt.target.classList.add('active');
@@ -884,17 +1003,19 @@
         );
       }
 
-      const querySnapshot = await window.getDocs(q);
-      currentTabLeaderboardData = [];
-
-      querySnapshot.forEach((doc) => {
-        currentTabLeaderboardData.push({ docId: doc.id, ...doc.data() });
+      unsubscribeResults = window.onSnapshot(q, (querySnapshot) => {
+        currentTabLeaderboardData = [];
+        querySnapshot.forEach((doc) => {
+          currentTabLeaderboardData.push({ docId: doc.id, ...doc.data() });
+        });
+        filterResultsLeaderboard();
+      }, (err) => {
+        console.error("Results page live error:", err);
+        container.innerHTML = `<div class="empty-state">Unable to load live rankings. Check database security rules or network connection.</div>`;
       });
 
-      renderResultsLeaderboard(currentTabLeaderboardData);
     } catch (err) {
-      console.error("Cloud fetch error:", err);
-      container.innerHTML = `<div class="empty-state">Unable to load rankings. Check database security rules or network connection.</div>`;
+      console.error("Setup results listener error:", err);
     }
   }
 
@@ -949,13 +1070,14 @@
 
   function exitToMain() {
     clearAllTimers();
+    if (unsubscribeResults) unsubscribeResults();
     document.getElementById('result-screen').classList.add('hidden');
     document.getElementById('setup-screen').classList.remove('hidden');
-    loadHomeLeaderboard(currentHomeYear);
+    subscribeHomeLeaderboard(currentHomeYear);
   }
 
   window.addEventListener('DOMContentLoaded', () => {
-    loadHomeLeaderboard('Overall');
+    subscribeHomeLeaderboard('Overall');
   });
 </script>
 
