@@ -149,17 +149,42 @@
       flex-direction: column;
       justify-content: center;
       align-items: center;
+      gap: 1.5rem;
       z-index: 50;
     }
 
     .countdown-overlay h2 {
-      font-size: 1.8rem;
+      font-size: 2rem;
       color: var(--accent);
-      margin-bottom: 0.5rem;
+      letter-spacing: 1px;
+    }
+
+    /* Countdown Box Styling */
+    .countdown-box {
+      background-color: #0f172a;
+      border: 2px solid var(--accent);
+      box-shadow: 0 0 25px rgba(56, 189, 248, 0.25);
+      border-radius: 1rem;
+      width: 140px;
+      height: 140px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: transform 0.2s ease;
+    }
+
+    .countdown-box.pulse {
+      animation: pop 0.3s ease-in-out;
+    }
+
+    @keyframes pop {
+      0% { transform: scale(0.9); }
+      50% { transform: scale(1.1); }
+      100% { transform: scale(1); }
     }
 
     .countdown-number {
-      font-size: 5rem;
+      font-size: 4.5rem;
       font-weight: bold;
       color: #ffffff;
     }
@@ -388,10 +413,12 @@
 
 <div class="container">
 
-  <!-- COUNTDOWN OVERLAY -->
+  <!-- COUNTDOWN OVERLAY WITH BOX -->
   <div id="countdown-screen" class="countdown-overlay hidden">
     <h2>Get Ready!</h2>
-    <div class="countdown-number" id="pre-game-count">5</div>
+    <div class="countdown-box" id="countdown-box">
+      <div class="countdown-number" id="pre-game-count">5</div>
+    </div>
   </div>
 
   <!-- SETUP / MAIN SCREEN -->
@@ -455,7 +482,7 @@
 
     <button type="button" class="btn-primary" onclick="startGame()" style="margin-top: 0.5rem;">Start Game</button>
 
-    <!-- Front Page Leaderboard with Top 100 Live Updates -->
+    <!-- Front Page Leaderboard -->
     <div style="margin-top: 1.5rem;">
       <h3>🏆 Top 100 Live Leaderboard</h3>
       
@@ -556,7 +583,6 @@
   let lastDocId = null;
   let isAnswering = false;
 
-  // Real-time Unsubscribe Handles
   let unsubscribeHome = null;
   let unsubscribeResults = null;
 
@@ -565,7 +591,7 @@
   let currentTabLeaderboardData = [];
 
   // ==========================================
-  // WEB AUDIO API FOR SOUND CUES
+  // WEB AUDIO API FOR SOUND CUES & COUNTDOWN
   // ==========================================
   let audioCtx = null;
 
@@ -592,8 +618,24 @@
     osc.connect(gain);
     gain.connect(audioCtx.destination);
 
-    if (type === 'correct') {
-      // Pleasant high-pitched chime
+    if (type === 'tick') {
+      // Crisp countdown tick
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(440, now); // A4
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+      osc.start(now);
+      osc.stop(now + 0.1);
+    } else if (type === 'go') {
+      // High start tone
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(880, now); // A5
+      gain.gain.setValueAtTime(0.35, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+      osc.start(now);
+      osc.stop(now + 0.3);
+    } else if (type === 'correct') {
+      // High-pitched chime
       osc.type = 'sine';
       osc.frequency.setValueAtTime(523.25, now); // C5
       osc.frequency.exponentialRampToValueAtTime(880, now + 0.15); // A5
@@ -613,6 +655,13 @@
     }
   }
 
+  function triggerBoxPulse() {
+    const box = document.getElementById('countdown-box');
+    box.classList.remove('pulse');
+    void box.offsetWidth; // Trigger reflow
+    box.classList.add('pulse');
+  }
+
   function generatePlayerTag() {
     const randomSixDigits = Math.floor(100000 + Math.random() * 900000);
     return `#${randomSixDigits}`;
@@ -630,7 +679,7 @@
   }
 
   function startGame() {
-    initAudio(); // Activate audio context on first click
+    initAudio();
     const name = document.getElementById('player-name').value.trim();
     const school = document.getElementById('player-school').value.trim();
     const state = document.getElementById('player-state').value;
@@ -658,13 +707,19 @@
     let count = 5;
     countdownDisplay.textContent = count;
     countdownScreen.classList.remove('hidden');
+    
+    playSound('tick');
+    triggerBoxPulse();
 
     preGameTimer = setInterval(() => {
       count--;
       if (count > 0) {
         countdownDisplay.textContent = count;
+        playSound('tick');
+        triggerBoxPulse();
       } else {
         clearInterval(preGameTimer);
+        playSound('go');
         countdownScreen.classList.add('hidden');
         document.getElementById('quiz-screen').classList.remove('hidden');
         initGame();
@@ -717,7 +772,6 @@
       return;
     }
 
-    // Reset Option Button Styles
     for (let i = 0; i < 4; i++) {
       const btn = document.querySelectorAll('.option-btn')[i];
       btn.classList.remove('btn-correct', 'btn-wrong');
@@ -767,7 +821,6 @@
     } else {
       playSound('wrong');
       selectedBtn.classList.add('btn-wrong');
-      // Highlight correct answer for feedback
       q.options.forEach((opt, idx) => {
         if (opt === q.correct) {
           document.querySelectorAll('.option-btn')[idx].classList.add('btn-correct');
@@ -775,7 +828,6 @@
       });
     }
 
-    // Brief delay to allow student to see visual cue
     setTimeout(() => {
       nextQuestion();
     }, 800);
@@ -830,7 +882,6 @@
     }
   }
 
-  // Switch tabs for Front-Page Leaderboard
   function switchHomeTab(targetVal, evt) {
     document.querySelectorAll('.home-tab').forEach(btn => btn.classList.remove('active'));
     if (evt && evt.target) {
@@ -844,13 +895,9 @@
     subscribeHomeLeaderboard(targetVal);
   }
 
-  // ==========================================
-  // REAL-TIME FIRESTORE LISTENERS (no-refresh)
-  // ==========================================
-
   function subscribeHomeLeaderboard(targetVal = 'Overall') {
     if (unsubscribeHome) {
-      unsubscribeHome(); // Unsubscribe previous listener
+      unsubscribeHome();
     }
 
     const container = document.getElementById('home-leaderboard-container');
@@ -943,10 +990,9 @@
     renderHomeLeaderboard(filtered);
   }
 
-  // Results Screen Real-time Leaderboard Listener
   function switchTab(category, evt) {
     if (unsubscribeResults) {
-      unsubscribeResults(); // Unsubscribe previous listener
+      unsubscribeResults();
     }
 
     document.querySelectorAll('#result-screen .tab-btn').forEach(btn => btn.classList.remove('active'));
