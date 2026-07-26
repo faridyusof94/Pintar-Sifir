@@ -4,6 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pintar Sifir Bersama Cikgu Farid</title>
+
+  <!-- Canvas Confetti Library -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
   <style>
     :root {
       --primary: #2563eb;
@@ -15,6 +19,7 @@
       --accent: #38bdf8;
       --success: #22c55e;
       --error: #ef4444;
+      --warning: #f59e0b;
     }
 
     * {
@@ -36,7 +41,7 @@
 
     .container {
       width: 100%;
-      max-width: 600px;
+      max-width: 650px;
       background: var(--card-bg);
       padding: 1.5rem;
       border-radius: 1rem;
@@ -48,22 +53,26 @@
       position: relative;
     }
 
-    h1, h2, h3 {
-      text-align: center;
+    /* Sound Mute Toggle */
+    .audio-toggle {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: #0f172a;
+      border: 1px solid var(--border);
       color: var(--text);
-    }
-
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 0.4rem;
-    }
-
-    label {
-      font-weight: 600;
+      padding: 0.4rem 0.8rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
       font-size: 0.875rem;
-      color: #cbd5e1;
+      width: auto;
+      z-index: 10;
     }
+
+    h1, h2, h3 { text-align: center; color: var(--text); }
+
+    .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+    label { font-weight: 600; font-size: 0.875rem; color: #cbd5e1; }
 
     input, select, button {
       padding: 0.75rem 1rem;
@@ -76,309 +85,98 @@
       outline: none;
     }
 
-    input:focus, select:focus {
-      border-color: var(--accent);
-    }
+    input:focus, select:focus { border-color: var(--accent); }
 
-    .btn-primary {
-      background-color: var(--accent);
-      color: #0f172a;
-      font-weight: bold;
-      border: none;
-      cursor: pointer;
-      font-size: 1.125rem;
-      padding: 1rem;
-    }
+    .btn-primary { background-color: var(--accent); color: #0f172a; font-weight: bold; border: none; cursor: pointer; font-size: 1.125rem; padding: 1rem; }
+    .btn-secondary { background-color: #334155; color: var(--text); font-weight: bold; border: 1px solid #475569; cursor: pointer; font-size: 1.125rem; padding: 1rem; }
+    .btn-danger { background-color: var(--error); color: #fff; font-weight: bold; border: none; cursor: pointer; font-size: 1rem; padding: 0.75rem; }
 
-    .btn-secondary {
-      background-color: #334155;
-      color: var(--text);
-      font-weight: bold;
-      border: 1px solid #475569;
-      cursor: pointer;
-      font-size: 1.125rem;
-      padding: 1rem;
+    .role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
+    .role-btn {
+      padding: 1.5rem; background-color: #0f172a; border: 2px solid var(--border); border-radius: 0.75rem;
+      color: #fff; font-size: 1.2rem; font-weight: bold; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
     }
+    .role-btn:hover { border-color: var(--accent); background-color: #1e293b; }
 
-    .difficulty-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 0.75rem;
-    }
-
-    .diff-btn {
-      padding: 0.75rem;
-      border: 3px solid transparent;
-      border-radius: 0.5rem;
-      font-weight: bold;
-      font-size: 0.95rem;
-      cursor: pointer;
-      color: #000;
-      text-align: center;
-    }
-
-    .diff-btn.selected {
-      border-color: #ffffff;
-      transform: scale(1.02);
-    }
+    .difficulty-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+    .diff-btn { padding: 0.75rem; border: 3px solid transparent; border-radius: 0.5rem; font-weight: bold; font-size: 0.95rem; cursor: pointer; color: #000; text-align: center; }
+    .diff-btn.selected { border-color: #ffffff; transform: scale(1.02); }
 
     .btn-easy { background-color: #32cd32; }
     .btn-medium { background-color: #facc15; }
     .btn-hard { background-color: #f97316; }
     .btn-legendary { background-color: #ef4444; color: #fff; }
 
-    .diff-btn small {
-      font-size: 0.8rem;
-      font-weight: normal;
-    }
+    .hidden { display: none !important; }
 
-    .hidden {
-      display: none !important;
-    }
-
-    /* Countdown Overlay Styles */
+    /* Countdown Overlay */
     .countdown-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(15, 23, 42, 0.95);
-      border-radius: 1rem;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      gap: 1.5rem;
-      z-index: 50;
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.95);
+      border-radius: 1rem; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 1.5rem; z-index: 50;
     }
-
-    .countdown-overlay h2 {
-      font-size: 2rem;
-      color: var(--accent);
-      letter-spacing: 1px;
-    }
-
-    /* Countdown Box Styling */
     .countdown-box {
-      background-color: #0f172a;
-      border: 2px solid var(--accent);
-      box-shadow: 0 0 25px rgba(56, 189, 248, 0.25);
-      border-radius: 1rem;
-      width: 140px;
-      height: 140px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      transition: transform 0.2s ease;
+      background-color: #0f172a; border: 2px solid var(--accent); box-shadow: 0 0 25px rgba(56, 189, 248, 0.25);
+      border-radius: 1rem; width: 140px; height: 140px; display: flex; justify-content: center; align-items: center;
     }
+    .countdown-box.pulse { animation: pop 0.3s ease-in-out; }
+    @keyframes pop { 0% { transform: scale(0.9); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
+    .countdown-number { font-size: 4.5rem; font-weight: bold; color: #ffffff; }
 
-    .countdown-box.pulse {
-      animation: pop 0.3s ease-in-out;
-    }
-
-    @keyframes pop {
-      0% { transform: scale(0.9); }
-      50% { transform: scale(1.1); }
-      100% { transform: scale(1); }
-    }
-
-    .countdown-number {
-      font-size: 4.5rem;
-      font-weight: bold;
-      color: #ffffff;
-    }
-
-    /* Quiz Screen Styles */
-    .quiz-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding-bottom: 0.75rem;
-      border-bottom: 1px solid var(--border);
-    }
+    /* Quiz Screen */
+    .quiz-header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); }
+    .quiz-stats { display: flex; gap: 0.75rem; font-size: 0.875rem; }
+    .streak-badge { background: #ea580c; color: #fff; padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-weight: bold; }
 
     .question-box {
-      background-color: #0f172a;
-      border-radius: 0.75rem;
-      padding: 2rem;
-      text-align: center;
-      font-size: 2.5rem;
-      font-weight: bold;
-      border: 1px solid var(--border);
-      transition: all 0.2s ease;
+      background-color: #0f172a; border-radius: 0.75rem; padding: 1.75rem; text-align: center; font-size: 2.25rem; font-weight: bold; border: 1px solid var(--border);
     }
 
-    .options-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 1rem;
-    }
+    .powerup-bar { display: flex; justify-content: flex-end; }
+    .btn-powerup { width: auto; background-color: #7c3aed; color: #fff; font-weight: bold; padding: 0.4rem 0.8rem; font-size: 0.85rem; border: none; cursor: pointer; border-radius: 0.4rem; }
+    .btn-powerup:disabled { background-color: #475569; opacity: 0.6; cursor: not-allowed; }
 
-    .option-btn {
-      padding: 1.25rem;
-      border: 3px solid transparent;
-      border-radius: 0.5rem;
-      font-size: 1.25rem;
-      font-weight: bold;
-      color: #ffffff;
-      cursor: pointer;
-      text-align: left;
-      display: flex;
-      align-items: center;
-      transition: transform 0.1s ease, border-color 0.2s ease, background-color 0.2s ease;
-    }
-
+    .options-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+    .option-btn { padding: 1.25rem; border: 3px solid transparent; border-radius: 0.5rem; font-size: 1.25rem; font-weight: bold; color: #ffffff; cursor: pointer; text-align: left; }
     .option-a { background-color: #2563eb; }
     .option-b { background-color: #16a34a; }
     .option-c { background-color: #9333ea; }
     .option-d { background-color: #e11d48; }
 
-    /* Answer Animations & Visual Cues */
-    .option-btn.btn-correct {
-      background-color: var(--success) !important;
-      border-color: #ffffff !important;
-      transform: scale(1.03);
-      box-shadow: 0 0 15px var(--success);
-    }
+    .option-btn.btn-correct { background-color: var(--success) !important; border-color: #ffffff !important; }
+    .option-btn.btn-wrong { background-color: var(--error) !important; border-color: #ffffff !important; animation: shake 0.3s ease-in-out; }
+    .option-btn.btn-disabled { opacity: 0.2; pointer-events: none; }
 
-    .option-btn.btn-wrong {
-      background-color: var(--error) !important;
-      border-color: #ffffff !important;
-      animation: shake 0.3s ease-in-out;
-      box-shadow: 0 0 15px var(--error);
-    }
+    @keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
 
-    @keyframes shake {
-      0%, 100% { transform: translateX(0); }
-      20%, 60% { transform: translateX(-6px); }
-      40%, 80% { transform: translateX(6px); }
-    }
+    .room-code-badge { background-color: #0f172a; border: 2px dashed var(--accent); padding: 0.75rem; border-radius: 0.5rem; text-align: center; font-size: 2rem; letter-spacing: 4px; font-weight: bold; color: var(--accent); }
 
-    .option-prefix {
-      background-color: rgba(0, 0, 0, 0.25);
-      padding: 0.25rem 0.6rem;
-      border-radius: 0.25rem;
-      margin-right: 0.75rem;
-      font-size: 1rem;
-    }
+    .leaderboard-list { background-color: #0f172a; border-radius: 0.5rem; padding: 0.5rem; max-height: 280px; overflow-y: auto; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 0.5rem; }
+    .leaderboard-item { display: flex; justify-content: space-between; align-items: center; padding: 0.65rem 0.75rem; font-size: 0.875rem; background: #1e293b; border-radius: 0.4rem; }
 
-    /* Leaderboard Styling & Tabs */
-    .tabs {
-      display: flex;
-      gap: 0.35rem;
-      overflow-x: auto;
-      padding-bottom: 0.25rem;
-    }
+    /* Teacher Dashboard Progress Bar */
+    .student-progress-wrapper { display: flex; flex-direction: column; gap: 0.2rem; width: 45%; }
+    .progress-bar-bg { width: 100%; height: 8px; background: #334155; border-radius: 4px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; background: var(--accent); width: 0%; transition: width 0.3s ease; }
 
-    .tab-btn {
-      flex: 1;
-      white-space: nowrap;
-      padding: 0.5rem 0.6rem;
-      background-color: #0f172a;
-      border: 1px solid var(--border);
-      color: #94a3b8;
-      border-radius: 0.375rem;
-      cursor: pointer;
-      font-size: 0.8rem;
-    }
+    /* Podium */
+    .podium-container { display: flex; justify-content: center; align-items: flex-end; gap: 0.5rem; margin: 1rem 0; height: 140px; }
+    .podium-place { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; width: 30%; border-radius: 0.5rem 0.5rem 0 0; padding: 0.5rem; font-weight: bold; text-align: center; font-size: 0.8rem; }
+    .place-1 { height: 100%; background: linear-gradient(180deg, #f59e0b, #b45309); color: #fff; }
+    .place-2 { height: 75%; background: linear-gradient(180deg, #94a3b8, #475569); color: #fff; }
+    .place-3 { height: 55%; background: linear-gradient(180deg, #d97706, #78350f); color: #fff; }
 
-    .tab-btn.active {
-      background-color: var(--accent);
-      color: #0f172a;
-      font-weight: bold;
-    }
-
-    .leaderboard-list {
-      background-color: #0f172a;
-      border-radius: 0.5rem;
-      padding: 0.5rem;
-      max-height: 280px;
-      overflow-y: auto;
-      border: 1px solid var(--border);
-    }
-
-    .leaderboard-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 0.65rem 0.75rem;
-      font-size: 0.875rem;
-      border-bottom: 1px solid #1e293b;
-    }
-
-    .leaderboard-item:last-child {
-      border-bottom: none;
-    }
-
-    .leaderboard-item.highlight {
-      background-color: #1e293b;
-      color: var(--accent);
-      font-weight: bold;
-      border-radius: 0.25rem;
-    }
-
-    .player-meta {
-      display: flex;
-      flex-direction: column;
-      gap: 0.15rem;
-    }
-
-    .player-tag {
-      background-color: #334155;
-      color: var(--accent);
-      padding: 0.15rem 0.4rem;
-      border-radius: 0.25rem;
-      font-size: 0.75rem;
-      font-family: monospace;
-      margin-left: 0.3rem;
-    }
-
-    .player-subtext {
-      font-size: 0.75rem;
-      color: #94a3b8;
-    }
-
-    .player-score {
-      text-align: right;
-      font-weight: 600;
-    }
-
-    .empty-state {
-      text-align: center;
-      padding: 2rem 1rem;
-      color: #64748b;
-      font-size: 0.875rem;
-    }
-
-    .stats-card {
-      background-color: #0f172a;
-      border-radius: 0.5rem;
-      padding: 1rem;
-      border: 1px solid var(--border);
-    }
-
-    .stat-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 0.5rem 0;
-      border-bottom: 1px solid #1e293b;
-    }
-
-    .stat-row:last-child {
-      border-bottom: none;
-    }
-
-    .button-group {
-      display: flex;
-      gap: 0.75rem;
-    }
+    .analytics-box { background-color: #0f172a; border: 1px solid var(--border); border-radius: 0.5rem; padding: 0.75rem; margin-top: 0.5rem; font-size: 0.875rem; }
+    .empty-state { text-align: center; padding: 2rem 1rem; color: #64748b; font-size: 0.875rem; }
+    .status-badge { font-size: 0.75rem; padding: 0.2rem 0.5rem; border-radius: 0.25rem; font-weight: bold; }
+    .status-joined { background-color: var(--warning); color: #000; }
+    .status-playing { background-color: var(--accent); color: #000; }
+    .status-finished { background-color: var(--success); color: #000; }
   </style>
 
   <!-- Firebase SDKs -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, onSnapshot, query, where, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     // FIXME: Replace with your actual Firebase configuration keys
     const firebaseConfig = {
@@ -395,25 +193,23 @@
     const db = getFirestore(app);
 
     window.db = db;
-    window.addDoc = addDoc;
+    window.doc = doc;
+    window.setDoc = setDoc;
+    window.getDoc = getDoc;
+    window.updateDoc = updateDoc;
     window.collection = collection;
     window.onSnapshot = onSnapshot;
     window.query = query;
-    window.where = where;
     window.orderBy = orderBy;
-    window.limit = limit;
     window.serverTimestamp = serverTimestamp;
-
-    if (typeof subscribeHomeLeaderboard === 'function') {
-      subscribeHomeLeaderboard('Overall');
-    }
   </script>
 </head>
 <body>
 
 <div class="container">
+  <button type="button" class="audio-toggle" id="audio-btn" onclick="toggleMute()">🔊 Sound: ON</button>
 
-  <!-- COUNTDOWN OVERLAY WITH BOX -->
+  <!-- COUNTDOWN OVERLAY -->
   <div id="countdown-screen" class="countdown-overlay hidden">
     <h2>Get Ready!</h2>
     <div class="countdown-box" id="countdown-box">
@@ -421,11 +217,41 @@
     </div>
   </div>
 
-  <!-- SETUP / MAIN SCREEN -->
-  <div id="setup-screen">
+  <!-- ROLE SELECTION SCREEN -->
+  <div id="role-screen">
     <h1>Pintar Sifir Bersama Cikgu Farid</h1>
+    <h3 style="margin-top: 0.5rem; color: #94a3b8;">Choose your role to get started</h3>
+
+    <div class="role-grid">
+      <div class="role-btn" onclick="selectRole('student')">
+        <span>🎓</span>
+        <span>Student</span>
+      </div>
+      <div class="role-btn" onclick="selectRole('teacher')">
+        <span>👨‍🏫</span>
+        <span>Teacher</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- STUDENT SETUP SCREEN -->
+  <div id="student-setup-screen" class="hidden">
+    <h2>Student Registration</h2>
     
     <div class="form-group" style="margin-top: 1rem;">
+      <label>Game Mode</label>
+      <select id="game-mode" onchange="toggleModeFields()">
+        <option value="solo">Solo Mode</option>
+        <option value="multiplayer">Multiplayer Session (Join Room)</option>
+      </select>
+    </div>
+
+    <div id="room-code-group" class="form-group hidden">
+      <label for="join-room-code">Room Code (6 Characters) *</label>
+      <input type="text" id="join-room-code" placeholder="e.g. SF82K1" style="text-transform: uppercase;">
+    </div>
+
+    <div class="form-group">
       <label for="player-name">Player Name *</label>
       <input type="text" id="player-name" placeholder="Enter your name" required>
     </div>
@@ -470,256 +296,367 @@
       </select>
     </div>
 
-    <div class="form-group">
+    <div id="solo-diff-group" class="form-group">
       <label>Select Difficulty (Time per question)</label>
       <div class="difficulty-grid">
-        <button type="button" class="diff-btn btn-easy selected" onclick="selectDifficulty('easy', 60, this)">Easy<br><small>(60 seconds)</small></button>
-        <button type="button" class="diff-btn btn-medium" onclick="selectDifficulty('medium', 30, this)">Medium<br><small>(30 seconds)</small></button>
-        <button type="button" class="diff-btn btn-hard" onclick="selectDifficulty('hard', 15, this)">Hard<br><small>(15 seconds)</small></button>
-        <button type="button" class="diff-btn btn-legendary" onclick="selectDifficulty('legendary', 5, this)">Legendary<br><small>(5 seconds)</small></button>
+        <button type="button" class="diff-btn btn-easy selected" onclick="selectDifficulty(60, this)">Easy<br><small>(60s)</small></button>
+        <button type="button" class="diff-btn btn-medium" onclick="selectDifficulty(30, this)">Medium<br><small>(30s)</small></button>
+        <button type="button" class="diff-btn btn-hard" onclick="selectDifficulty(15, this)">Hard<br><small>(15s)</small></button>
+        <button type="button" class="diff-btn btn-legendary" onclick="selectDifficulty(5, this)">Legendary<br><small>(5s)</small></button>
       </div>
     </div>
 
-    <button type="button" class="btn-primary" onclick="startGame()" style="margin-top: 0.5rem;">Start Game</button>
+    <button type="button" class="btn-primary" onclick="handleStudentSubmit()" style="margin-top: 0.5rem;">Join / Start</button>
+    <button type="button" class="btn-secondary" onclick="backToRole()" style="margin-top: 0.5rem;">Back</button>
+  </div>
 
-    <!-- Front Page Leaderboard -->
-    <div style="margin-top: 1.5rem;">
-      <h3>🏆 Top 100 Live Leaderboard</h3>
-      
-      <div class="tabs" style="margin-top: 0.5rem;">
-        <button type="button" class="tab-btn active home-tab" onclick="switchHomeTab('Overall', event)">Overall</button>
-        <button type="button" class="tab-btn home-tab" onclick="switchHomeTab('Year 1', event)">Year 1</button>
-        <button type="button" class="tab-btn home-tab" onclick="switchHomeTab('Year 2', event)">Year 2</button>
-        <button type="button" class="tab-btn home-tab" onclick="switchHomeTab('Year 3', event)">Year 3</button>
-        <button type="button" class="tab-btn home-tab" onclick="switchHomeTab('Year 4', event)">Year 4</button>
-        <button type="button" class="tab-btn home-tab" onclick="switchHomeTab('Year 5', event)">Year 5</button>
-        <button type="button" class="tab-btn home-tab" onclick="switchHomeTab('Year 6', event)">Year 6</button>
-      </div>
+  <!-- WAITING FOR HOST SCREEN -->
+  <div id="student-waiting-screen" class="hidden">
+    <h2>Multiplayer Lobby</h2>
+    <p style="text-align: center; color: #94a3b8;">Room Code:</p>
+    <div class="room-code-badge" id="waiting-room-code">------</div>
+    <div class="empty-state">
+      ⏳ Waiting for teacher to start the game...
+    </div>
+  </div>
 
-      <div class="form-group" style="margin: 0.5rem 0;">
-        <input type="text" id="home-search-input" placeholder="🔍 Search by name or 6-digit ID (e.g. #123456)..." oninput="filterHomeLeaderboard()">
-      </div>
-      <div id="home-leaderboard-container" class="leaderboard-list">
-        <div class="empty-state">Connecting to live rankings...</div>
+  <!-- TEACHER HOST DASHBOARD -->
+  <div id="teacher-dashboard" class="hidden">
+    <h2>👨‍🏫 Teacher Host Dashboard</h2>
+    <p style="text-align: center; color: #94a3b8; font-size: 0.875rem;">Share this Room Code with your students:</p>
+    <div class="room-code-badge" id="host-room-code">------</div>
+
+    <div id="teacher-config-section" class="form-group" style="margin-top: 1rem;">
+      <label>Question Time Limit</label>
+      <div class="difficulty-grid">
+        <button type="button" class="diff-btn btn-easy selected" onclick="selectHostDifficulty(60, this)">60s</button>
+        <button type="button" class="diff-btn btn-medium" onclick="selectHostDifficulty(30, this)">30s</button>
+        <button type="button" class="diff-btn btn-hard" onclick="selectHostDifficulty(15, this)">15s</button>
+        <button type="button" class="diff-btn btn-legendary" onclick="selectHostDifficulty(5, this)">5s</button>
       </div>
     </div>
+
+    <div style="margin-top: 1rem;">
+      <h3>Live Student Tracker (<span id="player-count">0</span>)</h3>
+      <div id="host-players-list" class="leaderboard-list" style="margin-top: 0.5rem;">
+        <div class="empty-state">No students joined yet...</div>
+      </div>
+    </div>
+
+    <button type="button" class="btn-primary" id="btn-start-multiplayer" onclick="startMultiplayerGame()" style="margin-top: 1rem;">🚀 Start Session Game</button>
+    <button type="button" class="btn-danger hidden" id="btn-force-end" onclick="forceEndGame()" style="margin-top: 0.5rem;">🛑 Force End Game</button>
+    <button type="button" class="btn-secondary" onclick="backToRole()" style="margin-top: 0.5rem;">Close Room & Exit</button>
   </div>
 
   <!-- QUIZ SCREEN -->
   <div id="quiz-screen" class="hidden">
     <div class="quiz-header">
-      <div>Question <span id="q-num">1</span>/10</div>
+      <div class="quiz-stats">
+        <span>Q: <strong id="q-num">1</strong>/10</span>
+        <span class="streak-badge" id="streak-badge">🔥 Streak: 0</span>
+      </div>
       <div>Time Left: <span id="timer-display" style="color: var(--accent); font-weight: bold;">0</span>s</div>
+    </div>
+
+    <div class="powerup-bar">
+      <button type="button" class="btn-powerup" id="btn-powerup-5050" onclick="use5050()">⚡ 50/50 Power-Up</button>
     </div>
 
     <div class="question-box" id="question-text">2 × 2 = ?</div>
 
     <div class="options-grid">
-      <button type="button" class="option-btn option-a" onclick="submitAnswer(0)"><span class="option-prefix">A</span> <span id="opt-0">0</span></button>
-      <button type="button" class="option-btn option-b" onclick="submitAnswer(1)"><span class="option-prefix">B</span> <span id="opt-1">0</span></button>
-      <button type="button" class="option-btn option-c" onclick="submitAnswer(2)"><span class="option-prefix">C</span> <span id="opt-2">0</span></button>
-      <button type="button" class="option-btn option-d" onclick="submitAnswer(3)"><span class="option-prefix">D</span> <span id="opt-3">0</span></button>
+      <button type="button" class="option-btn option-a" onclick="submitAnswer(0)"><span id="opt-0">0</span></button>
+      <button type="button" class="option-btn option-b" onclick="submitAnswer(1)"><span id="opt-1">0</span></button>
+      <button type="button" class="option-btn option-c" onclick="submitAnswer(2)"><span id="opt-2">0</span></button>
+      <button type="button" class="option-btn option-d" onclick="submitAnswer(3)"><span id="opt-3">0</span></button>
     </div>
   </div>
 
   <!-- RESULTS SCREEN -->
   <div id="result-screen" class="hidden">
-    <h2>Game Complete!</h2>
+    <h2 id="result-title">🎉 Session Completed!</h2>
 
-    <div class="stats-card">
-      <div class="stat-row">
-        <span>Player ID Tag:</span>
-        <strong id="res-player-tag" style="color: var(--accent);">#000000</strong>
+    <!-- Podium Section -->
+    <div id="podium-section" class="podium-container hidden">
+      <div class="podium-place place-2" id="podium-2">
+        <span>🥈 #2</span>
+        <span id="podium-name-2">-</span>
       </div>
-      <div class="stat-row">
-        <span>Accuracy:</span>
-        <strong id="res-accuracy">0% (0/10)</strong>
+      <div class="podium-place place-1" id="podium-1">
+        <span>👑 #1</span>
+        <span id="podium-name-1">-</span>
       </div>
-      <div class="stat-row">
-        <span>Avg. Speed per Question:</span>
-        <strong id="res-speed">0.00s</strong>
-      </div>
-      <div class="stat-row">
-        <span>Total Time Spent:</span>
-        <strong id="res-total-time">0.00s</strong>
+      <div class="podium-place place-3" id="podium-3">
+        <span>🥉 #3</span>
+        <span id="podium-name-3">-</span>
       </div>
     </div>
 
-    <h3>Leaderboards</h3>
-    <div class="tabs">
-      <button type="button" class="tab-btn active" onclick="switchTab('all', event)">Overall</button>
-      <button type="button" class="tab-btn" onclick="switchTab('class', event)"><span id="tab-class-label">Class</span></button>
-      <button type="button" class="tab-btn" onclick="switchTab('school', event)">School</button>
-      <button type="button" class="tab-btn" onclick="switchTab('state', event)">State</button>
+    <!-- Analytics Section -->
+    <div id="analytics-section" class="analytics-box hidden">
+      <strong>📊 Classroom Session Summary:</strong>
+      <div style="margin-top: 0.4rem; color: #cbd5e1;">
+        • Class Accuracy: <strong id="class-accuracy">0%</strong><br>
+        • Toughest Question: <strong id="toughest-question">None</strong>
+      </div>
     </div>
 
-    <div class="form-group">
-      <input type="text" id="results-search-input" placeholder="🔍 Search tab by name or ID..." oninput="filterResultsLeaderboard()">
+    <div id="session-leaderboard-section">
+      <h3 style="margin-top: 1rem;">🏆 Leaderboard Rankings</h3>
+      <div id="session-leaderboard-container" class="leaderboard-list" style="margin-top: 0.5rem;">
+        <div class="empty-state">Loading rankings...</div>
+      </div>
     </div>
 
-    <div id="leaderboard-container" class="leaderboard-list">
-      <div class="empty-state">Connecting to live cloud rankings...</div>
-    </div>
-
-    <div class="button-group">
-      <button type="button" class="btn-primary" onclick="restartGame()">Restart Game</button>
-      <button type="button" class="btn-secondary" onclick="exitToMain()">Exit to Main</button>
-    </div>
+    <button type="button" class="btn-primary" onclick="backToRole()" style="margin-top: 1rem;">Exit to Main Menu</button>
   </div>
 
 </div>
 
 <script>
-  let player = { name: '', tag: '', classVal: 'Year 1', school: '', state: '' };
+  let isTeacher = false;
+  let activeRoomCode = null;
+  let playerId = null;
+  let roomListener = null;
+  let playerListener = null;
+
+  let isMuted = false;
+  let player = { name: '', classVal: 'Year 1', school: '', state: '' };
   let timePerQuestion = 60;
+  let hostTimePerQuestion = 60;
   let currentQuestion = 0;
   let score = 0;
+  let streak = 0;
+  let used5050 = false;
   let questions = [];
+  let missedQuestionsMap = {}; // Tracks wrong answers for teacher analytics
   let qTimer = null;
   let preGameTimer = null;
   let qTimeLeft = 0;
   let questionStartTime = 0;
   let questionTimes = [];
-  let lastDocId = null;
   let isAnswering = false;
 
-  let unsubscribeHome = null;
-  let unsubscribeResults = null;
-
-  let homeLeaderboardData = [];
-  let currentHomeYear = 'Overall';
-  let currentTabLeaderboardData = [];
-
-  // ==========================================
-  // WEB AUDIO API FOR SOUND CUES & COUNTDOWN
-  // ==========================================
+  // Audio Context Setup
   let audioCtx = null;
-
   function initAudio() {
     if (!audioCtx) {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
-      if (AudioContext) {
-        audioCtx = new AudioContext();
-      }
+      if (AudioContext) audioCtx = new AudioContext();
     }
-    if (audioCtx && audioCtx.state === 'suspended') {
-      audioCtx.resume();
-    }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  }
+
+  function toggleMute() {
+    isMuted = !isMuted;
+    document.getElementById('audio-btn').innerText = isMuted ? "🔇 Sound: OFF" : "🔊 Sound: ON";
   }
 
   function playSound(type) {
+    if (isMuted) return;
     initAudio();
     if (!audioCtx) return;
-
     const now = audioCtx.currentTime;
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
-
-    osc.connect(gain);
-    gain.connect(audioCtx.destination);
+    osc.connect(gain); gain.connect(audioCtx.destination);
 
     if (type === 'tick') {
-      // Crisp countdown tick
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(440, now); // A4
-      gain.gain.setValueAtTime(0.2, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-      osc.start(now);
-      osc.stop(now + 0.1);
-    } else if (type === 'go') {
-      // High start tone
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(880, now); // A5
-      gain.gain.setValueAtTime(0.35, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-      osc.start(now);
-      osc.stop(now + 0.3);
-    } else if (type === 'correct') {
-      // High-pitched chime
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(523.25, now); // C5
-      osc.frequency.exponentialRampToValueAtTime(880, now + 0.15); // A5
-      gain.gain.setValueAtTime(0.3, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-      osc.start(now);
-      osc.stop(now + 0.3);
+      osc.type = 'sine'; osc.frequency.setValueAtTime(440, now);
+      gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+      osc.start(now); osc.stop(now + 0.1);
+    } else if (type === 'go' || type === 'correct') {
+      osc.type = 'sine'; osc.frequency.setValueAtTime(523.25, now);
+      osc.frequency.exponentialRampToValueAtTime(880, now + 0.15);
+      gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+      osc.start(now); osc.stop(now + 0.3);
     } else if (type === 'wrong') {
-      // Low double-tone boop
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(180, now);
-      osc.frequency.setValueAtTime(130, now + 0.12);
-      gain.gain.setValueAtTime(0.25, now);
-      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-      osc.start(now);
-      osc.stop(now + 0.3);
+      osc.type = 'sawtooth'; osc.frequency.setValueAtTime(180, now);
+      gain.gain.setValueAtTime(0.25, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+      osc.start(now); osc.stop(now + 0.3);
     }
   }
 
   function triggerBoxPulse() {
     const box = document.getElementById('countdown-box');
-    box.classList.remove('pulse');
-    void box.offsetWidth; // Trigger reflow
-    box.classList.add('pulse');
+    box.classList.remove('pulse'); void box.offsetWidth; box.classList.add('pulse');
   }
 
-  function generatePlayerTag() {
-    const randomSixDigits = Math.floor(100000 + Math.random() * 900000);
-    return `#${randomSixDigits}`;
-  }
-
-  function clearAllTimers() {
-    if (qTimer) clearInterval(qTimer);
-    if (preGameTimer) clearInterval(preGameTimer);
-  }
-
-  function selectDifficulty(diff, time, element) {
-    timePerQuestion = time;
-    document.querySelectorAll('.diff-btn').forEach(btn => btn.classList.remove('selected'));
-    element.classList.add('selected');
-  }
-
-  function startGame() {
+  function selectRole(role) {
     initAudio();
+    isTeacher = (role === 'teacher');
+    document.getElementById('role-screen').classList.add('hidden');
+
+    if (isTeacher) setupTeacherHost();
+    else document.getElementById('student-setup-screen').classList.remove('hidden');
+  }
+
+  function backToRole() {
+    if (roomListener) roomListener();
+    if (playerListener) playerListener();
+    document.querySelectorAll('.container > div').forEach(div => {
+      if (div.id !== 'audio-btn') div.classList.add('hidden');
+    });
+    document.getElementById('role-screen').classList.remove('hidden');
+  }
+
+  function toggleModeFields() {
+    const mode = document.getElementById('game-mode').value;
+    const roomGrp = document.getElementById('room-code-group');
+    const diffGrp = document.getElementById('solo-diff-group');
+
+    if (mode === 'multiplayer') {
+      roomGrp.classList.remove('hidden'); diffGrp.classList.add('hidden');
+    } else {
+      roomGrp.classList.add('hidden'); diffGrp.classList.remove('hidden');
+    }
+  }
+
+  function selectDifficulty(time, btn) {
+    timePerQuestion = time;
+    document.querySelectorAll('#solo-diff-group .diff-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+  }
+
+  function selectHostDifficulty(time, btn) {
+    hostTimePerQuestion = time;
+    document.querySelectorAll('#teacher-dashboard .diff-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+  }
+
+  // --- TEACHER HOST LOGIC ---
+  async function setupTeacherHost() {
+    activeRoomCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+    document.getElementById('host-room-code').textContent = activeRoomCode;
+    document.getElementById('teacher-dashboard').classList.remove('hidden');
+    document.getElementById('btn-start-multiplayer').classList.remove('hidden');
+    document.getElementById('btn-force-end').classList.add('hidden');
+    document.getElementById('teacher-config-section').classList.remove('hidden');
+
+    await window.setDoc(window.doc(window.db, "rooms", activeRoomCode), {
+      status: "waiting",
+      timePerQuestion: hostTimePerQuestion,
+      createdAt: window.serverTimestamp()
+    });
+
+    const playersRef = window.collection(window.db, "rooms", activeRoomCode, "players");
+    const q = window.query(playersRef, window.orderBy("score", "desc"));
+    
+    playerListener = window.onSnapshot(q, (snapshot) => {
+      const container = document.getElementById('host-players-list');
+      container.innerHTML = '';
+      document.getElementById('player-count').textContent = snapshot.size;
+
+      if (snapshot.empty) {
+        container.innerHTML = `<div class="empty-state">No students joined yet...</div>`;
+        return;
+      }
+
+      snapshot.forEach((docSnap) => {
+        const p = docSnap.data();
+        const currentQ = p.currentQuestion || 0;
+        const progressPct = Math.min(100, (currentQ / 10) * 100);
+
+        const row = document.createElement('div');
+        row.className = 'leaderboard-item';
+        row.innerHTML = `
+          <div>
+            <strong>${p.name}</strong> (${p.classVal})
+            <div><span class="status-badge status-${p.status || 'joined'}">${p.status || 'joined'}</span></div>
+          </div>
+          <div class="student-progress-wrapper">
+            <span style="font-size:0.75rem; color:#cbd5e1; text-align:right;">Progress: Q${currentQ}/10</span>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" style="width: ${progressPct}%;"></div>
+            </div>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    });
+  }
+
+  async function startMultiplayerGame() {
+    await window.updateDoc(window.doc(window.db, "rooms", activeRoomCode), {
+      status: "active",
+      timePerQuestion: hostTimePerQuestion
+    });
+    document.getElementById('btn-start-multiplayer').classList.add('hidden');
+    document.getElementById('btn-force-end').classList.remove('hidden');
+    document.getElementById('teacher-config-section').classList.add('hidden');
+  }
+
+  async function forceEndGame() {
+    if (confirm("Are you sure you want to force end the game for all players?")) {
+      await window.updateDoc(window.doc(window.db, "rooms", activeRoomCode), { status: "finished" });
+      loadMultiplayerResultsScreen();
+    }
+  }
+
+  // --- STUDENT LOGIC ---
+  async function handleStudentSubmit() {
     const name = document.getElementById('player-name').value.trim();
     const school = document.getElementById('player-school').value.trim();
     const state = document.getElementById('player-state').value;
+    const mode = document.getElementById('game-mode').value;
 
-    if (!name || !school || !state) {
-      alert('Please fill in all fields, including selecting your State!');
-      return;
+    if (!name || !school || !state) { alert("Please fill in all details!"); return; }
+
+    player = { name, classVal: document.getElementById('player-class').value, school, state };
+
+    if (mode === 'solo') {
+      document.getElementById('student-setup-screen').classList.add('hidden');
+      startPreGameCountdown();
+    } else {
+      const code = document.getElementById('join-room-code').value.trim().toUpperCase();
+      if (!code || code.length !== 6) { alert("Enter a valid 6-character Code!"); return; }
+
+      const roomSnap = await window.getDoc(window.doc(window.db, "rooms", code));
+      if (!roomSnap.exists()) { alert("Room Code not found!"); return; }
+
+      activeRoomCode = code;
+      playerId = Math.random().toString(36).substring(2, 9);
+      timePerQuestion = roomSnap.data().timePerQuestion || 30;
+
+      await window.setDoc(window.doc(window.db, "rooms", activeRoomCode, "players", playerId), {
+        name: player.name, classVal: player.classVal, school: player.school, state: player.state,
+        status: "joined", score: 0, currentQuestion: 0, totalTime: 0, missedQuestions: []
+      });
+
+      document.getElementById('student-setup-screen').classList.add('hidden');
+      document.getElementById('student-waiting-screen').classList.remove('hidden');
+      document.getElementById('waiting-room-code').textContent = activeRoomCode;
+
+      roomListener = window.onSnapshot(window.doc(window.db, "rooms", activeRoomCode), (docSnap) => {
+        if (docSnap.exists()) {
+          const status = docSnap.data().status;
+          if (status === 'active') {
+            document.getElementById('student-waiting-screen').classList.add('hidden');
+            startPreGameCountdown();
+          } else if (status === 'finished') {
+            endGame();
+          }
+        }
+      });
     }
-
-    player.name = name;
-    player.tag = generatePlayerTag();
-    player.classVal = document.getElementById('player-class').value;
-    player.school = school;
-    player.state = state;
-
-    document.getElementById('setup-screen').classList.add('hidden');
-    startPreGameCountdown();
   }
 
+  // --- GAMEPLAY ENGINE ---
   function startPreGameCountdown() {
-    clearAllTimers();
     const countdownScreen = document.getElementById('countdown-screen');
     const countdownDisplay = document.getElementById('pre-game-count');
-    
     let count = 5;
     countdownDisplay.textContent = count;
     countdownScreen.classList.remove('hidden');
-    
-    playSound('tick');
-    triggerBoxPulse();
+    playSound('tick'); triggerBoxPulse();
 
     preGameTimer = setInterval(() => {
       count--;
       if (count > 0) {
         countdownDisplay.textContent = count;
-        playSound('tick');
-        triggerBoxPulse();
+        playSound('tick'); triggerBoxPulse();
       } else {
-        clearInterval(preGameTimer);
-        playSound('go');
+        clearInterval(preGameTimer); playSound('go');
         countdownScreen.classList.add('hidden');
         document.getElementById('quiz-screen').classList.remove('hidden');
         initGame();
@@ -733,49 +670,38 @@
       const num1 = Math.floor(Math.random() * 11) + 2;
       const num2 = Math.floor(Math.random() * 11) + 2;
       const correct = num1 * num2;
-
-      let optionsSet = new Set();
-      optionsSet.add(correct);
-
-      const offsets = [-12, -10, -5, -4, -3, -2, -1, 1, 2, 3, 4, 5, 10, 12];
-      offsets.sort(() => Math.random() - 0.5);
-
-      for (let offset of offsets) {
-        const fake = correct + offset;
-        if (fake > 0 && fake !== correct) {
-          optionsSet.add(fake);
-        }
-        if (optionsSet.size === 4) break;
+      let optionsSet = new Set([correct]);
+      while (optionsSet.size < 4) {
+        let fake = correct + (Math.floor(Math.random() * 10) - 5);
+        if (fake > 0 && fake !== correct) optionsSet.add(fake);
       }
-
-      const optionsArray = Array.from(optionsSet).sort(() => Math.random() - 0.5);
-
-      questions.push({ num1, num2, correct, options: optionsArray });
+      questions.push({ num1, num2, correct, options: Array.from(optionsSet).sort(() => Math.random() - 0.5) });
     }
   }
 
   function initGame() {
-    score = 0;
-    currentQuestion = 0;
-    questionTimes = [];
+    score = 0; streak = 0; currentQuestion = 0; questionTimes = []; used5050 = false;
+    document.getElementById('btn-powerup-5050').disabled = false;
+    document.getElementById('streak-badge').textContent = `🔥 Streak: 0`;
 
-    generateQuestions();
-    loadQuestion();
+    if (activeRoomCode && playerId) {
+      window.updateDoc(window.doc(window.db, "rooms", activeRoomCode, "players", playerId), {
+        status: "playing", currentQuestion: 0
+      });
+    }
+    generateQuestions(); loadQuestion();
   }
 
   function loadQuestion() {
-    clearAllTimers();
+    if (qTimer) clearInterval(qTimer);
     isAnswering = false;
 
-    if (currentQuestion >= 10) {
-      endGame();
-      return;
-    }
+    if (currentQuestion >= 10) { endGame(); return; }
 
-    for (let i = 0; i < 4; i++) {
-      const btn = document.querySelectorAll('.option-btn')[i];
-      btn.classList.remove('btn-correct', 'btn-wrong');
-    }
+    document.querySelectorAll('.option-btn').forEach(btn => {
+      btn.classList.remove('btn-correct', 'btn-wrong', 'btn-disabled');
+      btn.disabled = false;
+    });
 
     qTimeLeft = timePerQuestion;
     document.getElementById('timer-display').textContent = qTimeLeft;
@@ -789,24 +715,44 @@
     }
 
     questionStartTime = Date.now();
-
     qTimer = setInterval(() => {
       qTimeLeft--;
       document.getElementById('timer-display').textContent = Math.max(0, qTimeLeft);
-      
       if (qTimeLeft <= 0) {
-        clearAllTimers();
-        playSound('wrong');
-        questionTimes.push(timePerQuestion);
-        nextQuestion();
+        clearInterval(qTimer); playSound('wrong');
+        registerWrongAnswer(`${q.num1} × ${q.num2}`);
+        questionTimes.push(timePerQuestion); nextQuestion();
       }
     }, 1000);
+  }
+
+  function use5050() {
+    if (used5050 || isAnswering) return;
+    used5050 = true;
+    document.getElementById('btn-powerup-5050').disabled = true;
+
+    const q = questions[currentQuestion];
+    let removedCount = 0;
+    for (let i = 0; i < 4; i++) {
+      if (q.options[i] !== q.correct && removedCount < 2) {
+        const btn = document.querySelectorAll('.option-btn')[i];
+        btn.classList.add('btn-disabled');
+        btn.disabled = true;
+        removedCount++;
+      }
+    }
+  }
+
+  function registerWrongAnswer(qStr) {
+    missedQuestionsMap[qStr] = (missedQuestionsMap[qStr] || 0) + 1;
+    streak = 0;
+    document.getElementById('streak-badge').textContent = `🔥 Streak: 0`;
   }
 
   function submitAnswer(optionIndex) {
     if (isAnswering) return;
     isAnswering = true;
-    clearAllTimers();
+    clearInterval(qTimer);
 
     const elapsed = Math.min(timePerQuestion, (Date.now() - questionStartTime) / 1000);
     questionTimes.push(elapsed);
@@ -815,316 +761,123 @@
     const selectedBtn = document.querySelectorAll('.option-btn')[optionIndex];
 
     if (q.options[optionIndex] === q.correct) {
-      score++;
-      playSound('correct');
-      selectedBtn.classList.add('btn-correct');
+      score++; streak++;
+      playSound('correct'); selectedBtn.classList.add('btn-correct');
+      document.getElementById('streak-badge').textContent = `🔥 Streak: ${streak}`;
     } else {
-      playSound('wrong');
-      selectedBtn.classList.add('btn-wrong');
-      q.options.forEach((opt, idx) => {
-        if (opt === q.correct) {
-          document.querySelectorAll('.option-btn')[idx].classList.add('btn-correct');
-        }
+      playSound('wrong'); selectedBtn.classList.add('btn-wrong');
+      registerWrongAnswer(`${q.num1} × ${q.num2}`);
+    }
+
+    setTimeout(nextQuestion, 800);
+  }
+
+  async function nextQuestion() {
+    currentQuestion++;
+    if (activeRoomCode && playerId) {
+      window.updateDoc(window.doc(window.db, "rooms", activeRoomCode, "players", playerId), {
+        currentQuestion: currentQuestion, score: score
       });
     }
 
-    setTimeout(() => {
-      nextQuestion();
-    }, 800);
-  }
-
-  function nextQuestion() {
-    currentQuestion++;
-    if (currentQuestion < 10) {
-      loadQuestion();
-    } else {
-      endGame();
-    }
+    if (currentQuestion < 10) loadQuestion();
+    else endGame();
   }
 
   async function endGame() {
-    clearAllTimers();
+    if (qTimer) clearInterval(qTimer);
     document.getElementById('quiz-screen').classList.add('hidden');
     document.getElementById('result-screen').classList.remove('hidden');
 
-    const totalTimeSpent = questionTimes.reduce((a, b) => a + b, 0);
-    const avgSpeed = questionTimes.length > 0 ? (totalTimeSpent / questionTimes.length) : 0;
-    const accuracyPct = Math.round((score / 10) * 100);
+    const totalTime = questionTimes.reduce((a, b) => a + b, 0);
 
-    document.getElementById('res-player-tag').textContent = player.tag;
-    document.getElementById('res-accuracy').textContent = `${accuracyPct}% (${score}/10)`;
-    document.getElementById('res-speed').textContent = `${avgSpeed.toFixed(2)}s`;
-    document.getElementById('res-total-time').textContent = `${totalTimeSpent.toFixed(2)}s`;
-    document.getElementById('tab-class-label').textContent = player.classVal;
-
-    await saveScoreToCloud(score, avgSpeed);
-    switchTab('all');
-  }
-
-  async function saveScoreToCloud(userScore, userAvgSpeed) {
-    if (!window.db) return;
-
-    try {
-      const docRef = await window.addDoc(window.collection(window.db, "leaderboard"), {
-        name: player.name,
-        tag: player.tag,
-        classVal: player.classVal,
-        school: player.school,
-        schoolLower: player.school.toLowerCase(),
-        state: player.state,
-        score: userScore,
-        speed: userAvgSpeed,
-        createdAt: window.serverTimestamp()
+    if (activeRoomCode && playerId) {
+      const missedArr = Object.keys(missedQuestionsMap);
+      await window.updateDoc(window.doc(window.db, "rooms", activeRoomCode, "players", playerId), {
+        status: "finished",
+        score: score,
+        totalTime: parseFloat(totalTime.toFixed(2)),
+        missedQuestions: missedArr
       });
-      lastDocId = docRef.id;
-    } catch (e) {
-      console.error("Error saving score to Firebase: ", e);
-    }
-  }
-
-  function switchHomeTab(targetVal, evt) {
-    document.querySelectorAll('.home-tab').forEach(btn => btn.classList.remove('active'));
-    if (evt && evt.target) {
-      evt.target.classList.add('active');
-    }
-
-    const searchInput = document.getElementById('home-search-input');
-    if (searchInput) searchInput.value = '';
-
-    currentHomeYear = targetVal;
-    subscribeHomeLeaderboard(targetVal);
-  }
-
-  function subscribeHomeLeaderboard(targetVal = 'Overall') {
-    if (unsubscribeHome) {
-      unsubscribeHome();
-    }
-
-    const container = document.getElementById('home-leaderboard-container');
-    if (!container) return;
-
-    container.innerHTML = `<div class="empty-state">Loading live ${targetVal} top 100 rankings...</div>`;
-
-    if (!window.db) {
-      setTimeout(() => subscribeHomeLeaderboard(targetVal), 300);
-      return;
-    }
-
-    try {
-      let leaderboardRef = window.collection(window.db, "leaderboard");
-      let q;
-
-      if (targetVal === 'Overall') {
-        q = window.query(
-          leaderboardRef, 
-          window.orderBy("score", "desc"), 
-          window.orderBy("speed", "asc"), 
-          window.limit(100)
-        );
-      } else {
-        q = window.query(
-          leaderboardRef, 
-          window.where("classVal", "==", targetVal),
-          window.orderBy("score", "desc"), 
-          window.orderBy("speed", "asc"), 
-          window.limit(100)
-        );
-      }
-
-      unsubscribeHome = window.onSnapshot(q, (querySnapshot) => {
-        homeLeaderboardData = [];
-        querySnapshot.forEach((doc) => {
-          homeLeaderboardData.push({ id: doc.id, ...doc.data() });
-        });
-        filterHomeLeaderboard();
-      }, (err) => {
-        console.error("Front page live leaderboard error:", err);
-        container.innerHTML = `<div class="empty-state">Unable to load live rankings. Check database rules/indexes.</div>`;
-      });
-
-    } catch (err) {
-      console.error("Setup listener error:", err);
-    }
-  }
-
-  function renderHomeLeaderboard(data) {
-    const container = document.getElementById('home-leaderboard-container');
-    container.innerHTML = '';
-
-    if (!data || data.length === 0) {
-      container.innerHTML = `<div class="empty-state">No rankings for ${currentHomeYear} yet. Be the first to play!</div>`;
-      return;
-    }
-
-    data.forEach((item, index) => {
-      const tagDisplay = item.tag ? `<span class="player-tag">${item.tag}</span>` : '';
-      const row = document.createElement('div');
-      row.className = 'leaderboard-item';
-      row.innerHTML = `
-        <div class="player-meta">
-          <div><strong>#${index + 1} ${item.name}</strong>${tagDisplay}</div>
-          <div class="player-subtext">${item.school} • ${item.classVal || 'Year N/A'} • ${item.state}</div>
-        </div>
-        <div class="player-score">
-          <div>${item.score}/10 (${Math.round((item.score / 10) * 100)}%)</div>
-          <div class="player-subtext">${item.speed ? item.speed.toFixed(2) : 0}s avg</div>
+      loadMultiplayerResultsScreen();
+    } else {
+      // Solo Mode
+      if (score >= 7 && typeof confetti === 'function') confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+      document.getElementById('session-leaderboard-container').innerHTML = `
+        <div class="empty-state">
+          🎉 Solo Match Complete!<br>
+          Score: <strong>${score}/10</strong> | Total Time: <strong>${totalTime.toFixed(2)}s</strong>
         </div>
       `;
-      container.appendChild(row);
-    });
+    }
   }
 
-  function filterHomeLeaderboard() {
-    const queryTerm = document.getElementById('home-search-input').value.toLowerCase().trim();
-    if (!queryTerm) {
-      renderHomeLeaderboard(homeLeaderboardData);
-      return;
-    }
+  // --- RESULTS & PODIUM DISPLAY ---
+  function loadMultiplayerResultsScreen() {
+    const playersRef = window.collection(window.db, "rooms", activeRoomCode, "players");
+    const q = window.query(playersRef, window.orderBy("score", "desc"), window.orderBy("totalTime", "asc"));
 
-    const filtered = homeLeaderboardData.filter(item => {
-      const matchName = item.name && item.name.toLowerCase().includes(queryTerm);
-      const matchTag = item.tag && item.tag.toLowerCase().includes(queryTerm);
-      return matchName || matchTag;
-    });
+    window.onSnapshot(q, (snapshot) => {
+      const container = document.getElementById('session-leaderboard-container');
+      container.innerHTML = '';
 
-    renderHomeLeaderboard(filtered);
-  }
+      let totalScoreAll = 0;
+      let totalPlayers = snapshot.size;
+      let missedCountMap = {};
 
-  function switchTab(category, evt) {
-    if (unsubscribeResults) {
-      unsubscribeResults();
-    }
+      const playersData = [];
+      snapshot.forEach((docSnap) => {
+        const p = docSnap.data();
+        playersData.push(p);
+        totalScoreAll += (p.score || 0);
 
-    document.querySelectorAll('#result-screen .tab-btn').forEach(btn => btn.classList.remove('active'));
-    if (evt && evt.target) {
-      evt.target.classList.add('active');
-    }
-
-    const searchInput = document.getElementById('results-search-input');
-    if (searchInput) searchInput.value = '';
-
-    const container = document.getElementById('leaderboard-container');
-    container.innerHTML = `<div class="empty-state">Loading live top 100 cloud rankings...</div>`;
-
-    if (!window.db) {
-      container.innerHTML = `<div class="empty-state">Database not connected. Configure Firebase keys!</div>`;
-      return;
-    }
-
-    try {
-      let leaderboardRef = window.collection(window.db, "leaderboard");
-      let q;
-
-      if (category === 'class') {
-        q = window.query(
-          leaderboardRef, 
-          window.where("classVal", "==", player.classVal), 
-          window.orderBy("score", "desc"), 
-          window.orderBy("speed", "asc"), 
-          window.limit(100)
-        );
-      } else if (category === 'school') {
-        q = window.query(
-          leaderboardRef, 
-          window.where("schoolLower", "==", player.school.toLowerCase()), 
-          window.where("state", "==", player.state), 
-          window.orderBy("score", "desc"), 
-          window.orderBy("speed", "asc"), 
-          window.limit(100)
-        );
-      } else if (category === 'state') {
-        q = window.query(
-          leaderboardRef, 
-          window.where("state", "==", player.state), 
-          window.orderBy("score", "desc"), 
-          window.orderBy("speed", "asc"), 
-          window.limit(100)
-        );
-      } else {
-        q = window.query(
-          leaderboardRef, 
-          window.orderBy("score", "desc"), 
-          window.orderBy("speed", "asc"), 
-          window.limit(100)
-        );
-      }
-
-      unsubscribeResults = window.onSnapshot(q, (querySnapshot) => {
-        currentTabLeaderboardData = [];
-        querySnapshot.forEach((doc) => {
-          currentTabLeaderboardData.push({ docId: doc.id, ...doc.data() });
-        });
-        filterResultsLeaderboard();
-      }, (err) => {
-        console.error("Results page live error:", err);
-        container.innerHTML = `<div class="empty-state">Unable to load live rankings. Check database security rules or network connection.</div>`;
+        if (p.missedQuestions) {
+          p.missedQuestions.forEach(qStr => {
+            missedCountMap[qStr] = (missedCountMap[qStr] || 0) + 1;
+          });
+        }
       });
 
-    } catch (err) {
-      console.error("Setup results listener error:", err);
-    }
-  }
+      // Populate Podium
+      if (playersData.length > 0) {
+        document.getElementById('podium-section').classList.remove('hidden');
+        document.getElementById('podium-name-1').textContent = playersData[0] ? `${playersData[0].name} (${playersData[0].score}/10)` : '-';
+        document.getElementById('podium-name-2').textContent = playersData[1] ? `${playersData[1].name} (${playersData[1].score}/10)` : '-';
+        document.getElementById('podium-name-3').textContent = playersData[2] ? `${playersData[2].name} (${playersData[2].score}/10)` : '-';
 
-  function renderResultsLeaderboard(data) {
-    const container = document.getElementById('leaderboard-container');
-    container.innerHTML = '';
+        if (typeof confetti === 'function') confetti({ particleCount: 120, spread: 80, origin: { y: 0.5 } });
+      }
 
-    if (!data || data.length === 0) {
-      container.innerHTML = `<div class="empty-state">No matching players found.</div>`;
-      return;
-    }
+      // Populate Analytics
+      if (totalPlayers > 0) {
+        document.getElementById('analytics-section').classList.remove('hidden');
+        const avgPct = Math.round((totalScoreAll / (totalPlayers * 10)) * 100);
+        document.getElementById('class-accuracy').textContent = `${avgPct}%`;
 
-    data.forEach((item, index) => {
-      const isCurrentGame = item.docId === lastDocId;
-      const tagDisplay = item.tag ? `<span class="player-tag">${item.tag}</span>` : '';
-      const row = document.createElement('div');
-      row.className = `leaderboard-item ${isCurrentGame ? 'highlight' : ''}`;
-      row.innerHTML = `
-        <div class="player-meta">
-          <div><strong>#${index + 1} ${item.name}</strong>${tagDisplay} ${isCurrentGame ? '(You)' : ''}</div>
-          <div class="player-subtext">${item.school} • ${item.classVal || 'Year N/A'} • ${item.state}</div>
-        </div>
-        <div class="player-score">
-          <div>${item.score}/10 (${Math.round((item.score / 10) * 100)}%)</div>
-          <div class="player-subtext">${item.speed ? item.speed.toFixed(2) : 0}s avg</div>
-        </div>
-      `;
-      container.appendChild(row);
+        let toughest = "None";
+        let maxMissed = 0;
+        for (const [qStr, count] of Object.entries(missedCountMap)) {
+          if (count > maxMissed) { maxMissed = count; toughest = qStr; }
+        }
+        document.getElementById('toughest-question').textContent = toughest;
+      }
+
+      // Render Leaderboard Items
+      playersData.forEach((p, index) => {
+        const row = document.createElement('div');
+        row.className = 'leaderboard-item';
+        row.innerHTML = `
+          <div>
+            <strong>#${index + 1} ${p.name}</strong> (${p.classVal})
+          </div>
+          <div>
+            <strong>${p.score}/10</strong> (${p.totalTime || 0}s)
+          </div>
+        `;
+        container.appendChild(row);
+      });
     });
   }
-
-  function filterResultsLeaderboard() {
-    const queryTerm = document.getElementById('results-search-input').value.toLowerCase().trim();
-    if (!queryTerm) {
-      renderResultsLeaderboard(currentTabLeaderboardData);
-      return;
-    }
-
-    const filtered = currentTabLeaderboardData.filter(item => {
-      const matchName = item.name && item.name.toLowerCase().includes(queryTerm);
-      const matchTag = item.tag && item.tag.toLowerCase().includes(queryTerm);
-      return matchName || matchTag;
-    });
-
-    renderResultsLeaderboard(filtered);
-  }
-
-  function restartGame() {
-    document.getElementById('result-screen').classList.add('hidden');
-    startPreGameCountdown();
-  }
-
-  function exitToMain() {
-    clearAllTimers();
-    if (unsubscribeResults) unsubscribeResults();
-    document.getElementById('result-screen').classList.add('hidden');
-    document.getElementById('setup-screen').classList.remove('hidden');
-    subscribeHomeLeaderboard(currentHomeYear);
-  }
-
-  window.addEventListener('DOMContentLoaded', () => {
-    subscribeHomeLeaderboard('Overall');
-  });
 </script>
 
 </body>
