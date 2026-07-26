@@ -43,6 +43,7 @@
       display: flex;
       flex-direction: column;
       gap: 1.25rem;
+      position: relative;
     }
 
     h1, h2, h3 {
@@ -131,6 +132,34 @@
 
     .hidden {
       display: none !important;
+    }
+
+    /* Countdown Overlay Styles */
+    .countdown-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 23, 42, 0.95);
+      border-radius: 1rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 50;
+    }
+
+    .countdown-overlay h2 {
+      font-size: 1.8rem;
+      color: var(--accent);
+      margin-bottom: 0.5rem;
+    }
+
+    .countdown-number {
+      font-size: 5rem;
+      font-weight: bold;
+      color: #ffffff;
     }
 
     /* Quiz Screen Styles */
@@ -331,6 +360,12 @@
 
 <div class="container">
 
+  <!-- COUNTDOWN OVERLAY -->
+  <div id="countdown-screen" class="countdown-overlay hidden">
+    <h2>Get Ready!</h2>
+    <div class="countdown-number" id="pre-game-count">5</div>
+  </div>
+
   <!-- SETUP / MAIN SCREEN -->
   <div id="setup-screen">
     <h1>Pintar Sifir Bersama Cikgu Farid</h1>
@@ -357,7 +392,7 @@
       <input type="text" id="player-school" placeholder="e.g. SK Taman Tun" required>
     </div>
 
-    <!-- Compulsory State Selection (No Default) -->
+    <!-- Compulsory State Selection -->
     <div class="form-group">
       <label for="player-state">State *</label>
       <select id="player-state" required>
@@ -476,6 +511,7 @@
   let score = 0;
   let questions = [];
   let qTimer = null;
+  let preGameTimer = null;
   let qTimeLeft = 0;
   let questionStartTime = 0;
   let questionTimes = [];
@@ -484,7 +520,6 @@
   let homeLeaderboardData = [];
   let currentTabLeaderboardData = [];
 
-  // Generate 6-digit numeric tag
   function generatePlayerTag() {
     const randomSixDigits = Math.floor(100000 + Math.random() * 900000);
     return `#${randomSixDigits}`;
@@ -492,10 +527,11 @@
 
   function clearAllTimers() {
     if (qTimer) clearInterval(qTimer);
+    if (preGameTimer) clearInterval(preGameTimer);
   }
 
   function selectDifficulty(diff, time, element) {
-    timePerQuestion = time; // Sets timer per question (e.g., 5s for Legendary)
+    timePerQuestion = time;
     document.querySelectorAll('.diff-btn').forEach(btn => btn.classList.remove('selected'));
     element.classList.add('selected');
   }
@@ -517,9 +553,29 @@
     player.state = state;
 
     document.getElementById('setup-screen').classList.add('hidden');
-    document.getElementById('quiz-screen').classList.remove('hidden');
+    startPreGameCountdown();
+  }
 
-    initGame();
+  function startPreGameCountdown() {
+    clearAllTimers();
+    const countdownScreen = document.getElementById('countdown-screen');
+    const countdownDisplay = document.getElementById('pre-game-count');
+    
+    let count = 5;
+    countdownDisplay.textContent = count;
+    countdownScreen.classList.remove('hidden');
+
+    preGameTimer = setInterval(() => {
+      count--;
+      if (count > 0) {
+        countdownDisplay.textContent = count;
+      } else {
+        clearInterval(preGameTimer);
+        countdownScreen.classList.add('hidden');
+        document.getElementById('quiz-screen').classList.remove('hidden');
+        initGame();
+      }
+    }, 1000);
   }
 
   function generateQuestions() {
@@ -846,8 +902,7 @@
 
   function restartGame() {
     document.getElementById('result-screen').classList.add('hidden');
-    document.getElementById('quiz-screen').classList.remove('hidden');
-    initGame();
+    startPreGameCountdown();
   }
 
   function exitToMain() {
