@@ -291,13 +291,13 @@
     }
   </style>
 
-  <!-- Firebase Web SDK (v9 Modular) -->
+  <!-- Firebase Web SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getFirestore, collection, addDoc, getDocs, query, orderBy, limit, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     // -----------------------------------------------------------------
-    // REPLACE THIS WITH YOUR OWN FIREBASE CONFIG FROM STEP 2
+    // REPLACE THIS WITH YOUR OWN FIREBASE CONFIG FROM YOUR FIREBASE CONSOLE
     // -----------------------------------------------------------------
     const firebaseConfig = {
       apiKey: "AIzaSyD6w7t0tcePPixd_jHNDu4ki603SjGsoSU",
@@ -312,7 +312,6 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Global variables accessible to script functions
     window.db = db;
     window.addDoc = addDoc;
     window.collection = collection;
@@ -663,7 +662,8 @@
         let leaderboardRef = window.collection(window.db, "leaderboard");
         let q;
 
-        // Apply filters
+        // Primary sort: score DESC (highest accuracy wins)
+        // Secondary sort: speed ASC (fastest average time breaks ties)
         if (category === 'class') {
           q = window.query(leaderboardRef, window.where("classVal", "==", player.classVal), window.orderBy("score", "desc"), window.orderBy("speed", "asc"), window.limit(10));
         } else if (category === 'school') {
@@ -694,7 +694,7 @@
               <div class="player-subtext">${item.school} • ${item.state}</div>
             </div>
             <div class="player-score">
-              <div>${item.score}/10</div>
+              <div>${item.score}/10 (${Math.round((item.score / 10) * 100)}%)</div>
               <div class="player-subtext">${item.speed.toFixed(2)}s avg</div>
             </div>
           `;
