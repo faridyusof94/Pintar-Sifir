@@ -340,10 +340,10 @@
     window.where = where;
     window.serverTimestamp = serverTimestamp;
 
-    // Load home page leaderboard once Firebase connects
-    window.addEventListener('DOMContentLoaded', () => {
+    // Immediately trigger leaderboard load after Firebase initialization completes
+    if (typeof loadHomeLeaderboard === 'function') {
       loadHomeLeaderboard();
-    });
+    }
   </script>
 </head>
 <body>
@@ -492,7 +492,6 @@
     let questionTimes = [];
     let lastDocId = null;
 
-    // Helper to generate a 4-character ID tag (e.g., #A4B2)
     function generatePlayerTag() {
       const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
       let result = '#';
@@ -523,7 +522,7 @@
       }
 
       player.name = name;
-      player.tag = generatePlayerTag(); // Assign unique tag on start
+      player.tag = generatePlayerTag();
       player.classVal = document.getElementById('player-class').value;
       player.school = school;
       player.state = document.getElementById('player-state').value;
@@ -669,10 +668,7 @@
     }
 
     async function saveScoreToCloud(userScore, userAvgSpeed) {
-      if (!window.db) {
-        console.warn("Firebase not initialized yet.");
-        return;
-      }
+      if (!window.db) return;
 
       try {
         const docRef = await window.addDoc(window.collection(window.db, "leaderboard"), {
@@ -692,13 +688,12 @@
       }
     }
 
-    // Fetches top 10 for the Home Screen front page
     async function loadHomeLeaderboard() {
       const container = document.getElementById('home-leaderboard-container');
       if (!container) return;
 
       if (!window.db) {
-        setTimeout(loadHomeLeaderboard, 500); // Retry if Firebase is still loading
+        setTimeout(loadHomeLeaderboard, 300);
         return;
       }
 
@@ -839,8 +834,13 @@
       clearAllTimers();
       document.getElementById('result-screen').classList.add('hidden');
       document.getElementById('setup-screen').classList.remove('hidden');
-      loadHomeLeaderboard(); // Refresh home page rankings when exiting
+      loadHomeLeaderboard();
     }
+
+    // Backup trigger in case DOM renders before script execution
+    window.addEventListener('DOMContentLoaded', () => {
+      loadHomeLeaderboard();
+    });
   </script>
 </body>
 </html>
