@@ -172,37 +172,6 @@
     .status-playing { background-color: var(--accent); color: #000; }
     .status-finished { background-color: var(--success); color: #000; }
   </style>
-
-  <!-- Firebase SDKs -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
-
-    // FIXME: Replace with your actual Firebase configuration keys
-    const firebaseConfig = {
-      apiKey: "AIzaSyD6w7t0tcePPixd_jHNDu4ki603SjGsoSU",
-  authDomain: "pintar-sifir.firebaseapp.com",
-  projectId: "pintar-sifir",
-  storageBucket: "pintar-sifir.firebasestorage.app",
-  messagingSenderId: "1008490459974",
-  appId: "1:1008490459974:web:b62bfc0084b0b9a8106b47",
-  measurementId: "G-54YHRGFL66"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    window.db = db;
-    window.doc = doc;
-    window.setDoc = setDoc;
-    window.getDoc = getDoc;
-    window.updateDoc = updateDoc;
-    window.collection = collection;
-    window.onSnapshot = onSnapshot;
-    window.query = query;
-    window.orderBy = orderBy;
-    window.serverTimestamp = serverTimestamp;
-  </script>
 </head>
 <body>
 
@@ -413,7 +382,24 @@
 
 </div>
 
-<script>
+<!-- Firebase SDKs & Script Logic -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, onSnapshot, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+  // FIXME: Replace with your actual Firebase configuration keys
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
   let isTeacher = false;
   let activeRoomCode = null;
   let playerId = null;
@@ -429,7 +415,7 @@
   let streak = 0;
   let used5050 = false;
   let questions = [];
-  let missedQuestionsMap = {}; // Tracks wrong answers for teacher analytics
+  let missedQuestionsMap = {};
   let qTimer = null;
   let preGameTimer = null;
   let qTimeLeft = 0;
@@ -447,10 +433,10 @@
     if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
   }
 
-  function toggleMute() {
+  window.toggleMute = function() {
     isMuted = !isMuted;
     document.getElementById('audio-btn').innerText = isMuted ? "🔇 Sound: OFF" : "🔊 Sound: ON";
-  }
+  };
 
   function playSound(type) {
     if (isMuted) return;
@@ -482,25 +468,25 @@
     box.classList.remove('pulse'); void box.offsetWidth; box.classList.add('pulse');
   }
 
-  function selectRole(role) {
+  window.selectRole = function(role) {
     initAudio();
     isTeacher = (role === 'teacher');
     document.getElementById('role-screen').classList.add('hidden');
 
     if (isTeacher) setupTeacherHost();
     else document.getElementById('student-setup-screen').classList.remove('hidden');
-  }
+  };
 
-  function backToRole() {
+  window.backToRole = function() {
     if (roomListener) roomListener();
     if (playerListener) playerListener();
     document.querySelectorAll('.container > div').forEach(div => {
       if (div.id !== 'audio-btn') div.classList.add('hidden');
     });
     document.getElementById('role-screen').classList.remove('hidden');
-  }
+  };
 
-  function toggleModeFields() {
+  window.toggleModeFields = function() {
     const mode = document.getElementById('game-mode').value;
     const roomGrp = document.getElementById('room-code-group');
     const diffGrp = document.getElementById('solo-diff-group');
@@ -510,19 +496,19 @@
     } else {
       roomGrp.classList.add('hidden'); diffGrp.classList.remove('hidden');
     }
-  }
+  };
 
-  function selectDifficulty(time, btn) {
+  window.selectDifficulty = function(time, btn) {
     timePerQuestion = time;
     document.querySelectorAll('#solo-diff-group .diff-btn').forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected');
-  }
+  };
 
-  function selectHostDifficulty(time, btn) {
+  window.selectHostDifficulty = function(time, btn) {
     hostTimePerQuestion = time;
     document.querySelectorAll('#teacher-dashboard .diff-btn').forEach(b => b.classList.remove('selected'));
     btn.classList.add('selected');
-  }
+  };
 
   // --- TEACHER HOST LOGIC ---
   async function setupTeacherHost() {
@@ -533,74 +519,89 @@
     document.getElementById('btn-force-end').classList.add('hidden');
     document.getElementById('teacher-config-section').classList.remove('hidden');
 
-    await window.setDoc(window.doc(window.db, "rooms", activeRoomCode), {
-      status: "waiting",
-      timePerQuestion: hostTimePerQuestion,
-      createdAt: window.serverTimestamp()
-    });
-
-    const playersRef = window.collection(window.db, "rooms", activeRoomCode, "players");
-    const q = window.query(playersRef, window.orderBy("score", "desc"));
-    
-    playerListener = window.onSnapshot(q, (snapshot) => {
-      const container = document.getElementById('host-players-list');
-      container.innerHTML = '';
-      document.getElementById('player-count').textContent = snapshot.size;
-
-      if (snapshot.empty) {
-        container.innerHTML = `<div class="empty-state">No students joined yet...</div>`;
-        return;
-      }
-
-      snapshot.forEach((docSnap) => {
-        const p = docSnap.data();
-        const currentQ = p.currentQuestion || 0;
-        const progressPct = Math.min(100, (currentQ / 10) * 100);
-
-        const row = document.createElement('div');
-        row.className = 'leaderboard-item';
-        row.innerHTML = `
-          <div>
-            <strong>${p.name}</strong> (${p.classVal})
-            <div><span class="status-badge status-${p.status || 'joined'}">${p.status || 'joined'}</span></div>
-          </div>
-          <div class="student-progress-wrapper">
-            <span style="font-size:0.75rem; color:#cbd5e1; text-align:right;">Progress: Q${currentQ}/10</span>
-            <div class="progress-bar-bg">
-              <div class="progress-bar-fill" style="width: ${progressPct}%;"></div>
-            </div>
-          </div>
-        `;
-        container.appendChild(row);
+    try {
+      await setDoc(doc(db, "rooms", activeRoomCode), {
+        status: "waiting",
+        timePerQuestion: hostTimePerQuestion,
+        createdAt: serverTimestamp()
       });
-    });
-  }
 
-  async function startMultiplayerGame() {
-    await window.updateDoc(window.doc(window.db, "rooms", activeRoomCode), {
-      status: "active",
-      timePerQuestion: hostTimePerQuestion
-    });
-    document.getElementById('btn-start-multiplayer').classList.add('hidden');
-    document.getElementById('btn-force-end').classList.remove('hidden');
-    document.getElementById('teacher-config-section').classList.add('hidden');
-  }
+      const playersRef = collection(db, "rooms", activeRoomCode, "players");
+      const q = query(playersRef, orderBy("score", "desc"));
+      
+      playerListener = onSnapshot(q, (snapshot) => {
+        const container = document.getElementById('host-players-list');
+        container.innerHTML = '';
+        document.getElementById('player-count').textContent = snapshot.size;
 
-  async function forceEndGame() {
-    if (confirm("Are you sure you want to force end the game for all players?")) {
-      await window.updateDoc(window.doc(window.db, "rooms", activeRoomCode), { status: "finished" });
-      loadMultiplayerResultsScreen();
+        if (snapshot.empty) {
+          container.innerHTML = `<div class="empty-state">No students joined yet...</div>`;
+          return;
+        }
+
+        snapshot.forEach((docSnap) => {
+          const p = docSnap.data();
+          const currentQ = p.currentQuestion || 0;
+          const progressPct = Math.min(100, (currentQ / 10) * 100);
+
+          const row = document.createElement('div');
+          row.className = 'leaderboard-item';
+          row.innerHTML = `
+            <div>
+              <strong>${p.name}</strong> (${p.classVal})
+              <div><span class="status-badge status-${p.status || 'joined'}">${p.status || 'joined'}</span></div>
+            </div>
+            <div class="student-progress-wrapper">
+              <span style="font-size:0.75rem; color:#cbd5e1; text-align:right;">Progress: Q${currentQ}/10</span>
+              <div class="progress-bar-bg">
+                <div class="progress-bar-fill" style="width: ${progressPct}%;"></div>
+              </div>
+            </div>
+          `;
+          container.appendChild(row);
+        });
+      });
+    } catch (e) {
+      alert("Error setting up teacher room: " + e.message);
     }
   }
 
+  window.startMultiplayerGame = async function() {
+    try {
+      await updateDoc(doc(db, "rooms", activeRoomCode), {
+        status: "active",
+        timePerQuestion: hostTimePerQuestion
+      });
+      document.getElementById('btn-start-multiplayer').classList.add('hidden');
+      document.getElementById('btn-force-end').classList.remove('hidden');
+      document.getElementById('teacher-config-section').classList.add('hidden');
+    } catch (e) {
+      alert("Error starting game: " + e.message);
+    }
+  };
+
+  window.forceEndGame = async function() {
+    if (confirm("Are you sure you want to force end the game for all players?")) {
+      try {
+        await updateDoc(doc(db, "rooms", activeRoomCode), { status: "finished" });
+        loadMultiplayerResultsScreen();
+      } catch (e) {
+        alert("Error ending game: " + e.message);
+      }
+    }
+  };
+
   // --- STUDENT LOGIC ---
-  async function handleStudentSubmit() {
+  window.handleStudentSubmit = async function() {
     const name = document.getElementById('player-name').value.trim();
     const school = document.getElementById('player-school').value.trim();
     const state = document.getElementById('player-state').value;
     const mode = document.getElementById('game-mode').value;
 
-    if (!name || !school || !state) { alert("Please fill in all details!"); return; }
+    if (!name || !school || !state) { 
+      alert("Please fill in all details!"); 
+      return; 
+    }
 
     player = { name, classVal: document.getElementById('player-class').value, school, state };
 
@@ -609,37 +610,55 @@
       startPreGameCountdown();
     } else {
       const code = document.getElementById('join-room-code').value.trim().toUpperCase();
-      if (!code || code.length !== 6) { alert("Enter a valid 6-character Code!"); return; }
+      if (!code || code.length !== 6) { 
+        alert("Enter a valid 6-character Room Code!"); 
+        return; 
+      }
 
-      const roomSnap = await window.getDoc(window.doc(window.db, "rooms", code));
-      if (!roomSnap.exists()) { alert("Room Code not found!"); return; }
-
-      activeRoomCode = code;
-      playerId = Math.random().toString(36).substring(2, 9);
-      timePerQuestion = roomSnap.data().timePerQuestion || 30;
-
-      await window.setDoc(window.doc(window.db, "rooms", activeRoomCode, "players", playerId), {
-        name: player.name, classVal: player.classVal, school: player.school, state: player.state,
-        status: "joined", score: 0, currentQuestion: 0, totalTime: 0, missedQuestions: []
-      });
-
-      document.getElementById('student-setup-screen').classList.add('hidden');
-      document.getElementById('student-waiting-screen').classList.remove('hidden');
-      document.getElementById('waiting-room-code').textContent = activeRoomCode;
-
-      roomListener = window.onSnapshot(window.doc(window.db, "rooms", activeRoomCode), (docSnap) => {
-        if (docSnap.exists()) {
-          const status = docSnap.data().status;
-          if (status === 'active') {
-            document.getElementById('student-waiting-screen').classList.add('hidden');
-            startPreGameCountdown();
-          } else if (status === 'finished') {
-            endGame();
-          }
+      try {
+        const roomSnap = await getDoc(doc(db, "rooms", code));
+        if (!roomSnap.exists()) { 
+          alert("Room Code not found! Please check with your teacher."); 
+          return; 
         }
-      });
+
+        activeRoomCode = code;
+        playerId = Math.random().toString(36).substring(2, 9);
+        timePerQuestion = roomSnap.data().timePerQuestion || 30;
+
+        await setDoc(doc(db, "rooms", activeRoomCode, "players", playerId), {
+          name: player.name, 
+          classVal: player.classVal, 
+          school: player.school, 
+          state: player.state,
+          status: "joined", 
+          score: 0, 
+          currentQuestion: 0, 
+          totalTime: 0, 
+          missedQuestions: []
+        });
+
+        document.getElementById('student-setup-screen').classList.add('hidden');
+        document.getElementById('student-waiting-screen').classList.remove('hidden');
+        document.getElementById('waiting-room-code').textContent = activeRoomCode;
+
+        roomListener = onSnapshot(doc(db, "rooms", activeRoomCode), (docSnap) => {
+          if (docSnap.exists()) {
+            const status = docSnap.data().status;
+            if (status === 'active') {
+              document.getElementById('student-waiting-screen').classList.add('hidden');
+              startPreGameCountdown();
+            } else if (status === 'finished') {
+              endGame();
+            }
+          }
+        });
+      } catch (error) {
+        console.error("Firebase Error:", error);
+        alert("Failed to join room: " + error.message);
+      }
     }
-  }
+  };
 
   // --- GAMEPLAY ENGINE ---
   function startPreGameCountdown() {
@@ -685,7 +704,7 @@
     document.getElementById('streak-badge').textContent = `🔥 Streak: 0`;
 
     if (activeRoomCode && playerId) {
-      window.updateDoc(window.doc(window.db, "rooms", activeRoomCode, "players", playerId), {
+      updateDoc(doc(db, "rooms", activeRoomCode, "players", playerId), {
         status: "playing", currentQuestion: 0
       });
     }
@@ -726,7 +745,7 @@
     }, 1000);
   }
 
-  function use5050() {
+  window.use5050 = function() {
     if (used5050 || isAnswering) return;
     used5050 = true;
     document.getElementById('btn-powerup-5050').disabled = true;
@@ -741,7 +760,7 @@
         removedCount++;
       }
     }
-  }
+  };
 
   function registerWrongAnswer(qStr) {
     missedQuestionsMap[qStr] = (missedQuestionsMap[qStr] || 0) + 1;
@@ -749,7 +768,7 @@
     document.getElementById('streak-badge').textContent = `🔥 Streak: 0`;
   }
 
-  function submitAnswer(optionIndex) {
+  window.submitAnswer = function(optionIndex) {
     if (isAnswering) return;
     isAnswering = true;
     clearInterval(qTimer);
@@ -770,12 +789,12 @@
     }
 
     setTimeout(nextQuestion, 800);
-  }
+  };
 
   async function nextQuestion() {
     currentQuestion++;
     if (activeRoomCode && playerId) {
-      window.updateDoc(window.doc(window.db, "rooms", activeRoomCode, "players", playerId), {
+      updateDoc(doc(db, "rooms", activeRoomCode, "players", playerId), {
         currentQuestion: currentQuestion, score: score
       });
     }
@@ -793,7 +812,7 @@
 
     if (activeRoomCode && playerId) {
       const missedArr = Object.keys(missedQuestionsMap);
-      await window.updateDoc(window.doc(window.db, "rooms", activeRoomCode, "players", playerId), {
+      await updateDoc(doc(db, "rooms", activeRoomCode, "players", playerId), {
         status: "finished",
         score: score,
         totalTime: parseFloat(totalTime.toFixed(2)),
@@ -814,10 +833,10 @@
 
   // --- RESULTS & PODIUM DISPLAY ---
   function loadMultiplayerResultsScreen() {
-    const playersRef = window.collection(window.db, "rooms", activeRoomCode, "players");
-    const q = window.query(playersRef, window.orderBy("score", "desc"), window.orderBy("totalTime", "asc"));
+    const playersRef = collection(db, "rooms", activeRoomCode, "players");
+    const q = query(playersRef, orderBy("score", "desc"), orderBy("totalTime", "asc"));
 
-    window.onSnapshot(q, (snapshot) => {
+    onSnapshot(q, (snapshot) => {
       const container = document.getElementById('session-leaderboard-container');
       container.innerHTML = '';
 
