@@ -303,6 +303,12 @@
       padding: 0.65rem 0.75rem;
       font-size: 0.875rem;
       border-bottom: 1px solid #1e293b;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+    }
+
+    .leaderboard-item:hover {
+      background-color: #1e293b;
     }
 
     .leaderboard-item:last-child {
@@ -371,6 +377,78 @@
       display: flex;
       gap: 0.75rem;
     }
+
+    /* Modal Styling for Player Details */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(4px);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      padding: 1rem;
+    }
+
+    .modal-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 1rem;
+      width: 100%;
+      max-width: 500px;
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.75rem;
+    }
+
+    .modal-close {
+      background: none;
+      border: none;
+      color: #94a3b8;
+      font-size: 1.5rem;
+      cursor: pointer;
+      width: auto;
+      padding: 0;
+    }
+
+    .modal-close:hover {
+      color: #fff;
+    }
+
+    .session-timings-list {
+      max-height: 200px;
+      overflow-y: auto;
+      background: #0f172a;
+      border-radius: 0.5rem;
+      padding: 0.5rem;
+      border: 1px solid var(--border);
+    }
+
+    .timing-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.4rem 0.6rem;
+      font-size: 0.85rem;
+      border-bottom: 1px solid #1e293b;
+    }
+
+    .timing-row:last-child {
+      border-bottom: none;
+    }
   </style>
 
   <!-- Firebase SDKs -->
@@ -391,7 +469,6 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    // Enable local offline persistence for faster screen updates
     enableIndexedDbPersistence(db).catch(() => {});
 
     window.db = db;
@@ -412,6 +489,42 @@
 <body>
 
 <div class="container">
+
+  <!-- SESSION DETAILS MODAL -->
+  <div id="player-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-player-name">Player Details</h3>
+        <button type="button" class="modal-close" onclick="closePlayerModal()">✕</button>
+      </div>
+
+      <div class="stats-card">
+        <div class="stat-row">
+          <span>School & Class:</span>
+          <strong id="modal-school-info" style="color: var(--accent);">-</strong>
+        </div>
+        <div class="stat-row">
+          <span>State:</span>
+          <strong id="modal-state-info">-</strong>
+        </div>
+        <div class="stat-row">
+          <span>Final Score:</span>
+          <strong id="modal-score-info">-</strong>
+        </div>
+        <div class="stat-row">
+          <span>Average Speed:</span>
+          <strong id="modal-speed-info">-</strong>
+        </div>
+      </div>
+
+      <h4>Per-Question Breakdown</h4>
+      <div id="modal-timings-list" class="session-timings-list">
+        <!-- Breakdown rendered dynamically -->
+      </div>
+
+      <button type="button" class="btn-secondary" onclick="closePlayerModal()">Close</button>
+    </div>
+  </div>
 
   <!-- COUNTDOWN OVERLAY WITH BOX -->
   <div id="countdown-screen" class="countdown-overlay hidden">
@@ -835,7 +948,6 @@
     }
   }
 
-  // ⚡ INSTANT UI RESULTS TRANSITION
   function endGame() {
     clearAllTimers();
     document.getElementById('quiz-screen').classList.add('hidden');
@@ -851,10 +963,7 @@
     document.getElementById('res-total-time').textContent = `${totalTimeSpent.toFixed(2)}s`;
     document.getElementById('tab-class-label').textContent = player.classVal;
 
-    // Show rankings screen immediately
     switchTab('all');
-
-    // Save to Firebase in the background without blocking the UI
     saveScoreToCloud(score, avgSpeed);
   }
 
@@ -871,17 +980,49 @@
         state: player.state,
         score: userScore,
         speed: userAvgSpeed,
+        questionTimes: questionTimes, // Save per-question timings
         createdAt: window.serverTimestamp()
       });
       lastDocId = docRef.id;
       
-      // Re-trigger highlight once document ID is confirmed from cloud
       if (currentTabLeaderboardData.length > 0) {
         filterResultsLeaderboard();
       }
     } catch (e) {
       console.error("Background sync error: ", e);
     }
+  }
+
+  // MODAL SESSION BREAKDOWN FUNCTIONS
+  function openPlayerModal(item) {
+    document.getElementById('modal-player-name').textContent = `${item.name} ${item.tag || ''}`;
+    document.getElementById('modal-school-info').textContent = `${item.school} (${item.classVal || 'Year N/A'})`;
+    document.getElementById('modal-state-info').textContent = item.state || 'N/A';
+    document.getElementById('modal-score-info').textContent = `${item.score}/10 (${Math.round((item.score / 10) * 100)}%)`;
+    document.getElementById('modal-speed-info').textContent = `${item.speed ? item.speed.toFixed(2) : 0}s avg`;
+
+    const timingsList = document.getElementById('modal-timings-list');
+    timingsList.innerHTML = '';
+
+    if (item.questionTimes && Array.isArray(item.questionTimes)) {
+      item.questionTimes.forEach((time, idx) => {
+        const row = document.createElement('div');
+        row.className = 'timing-row';
+        row.innerHTML = `
+          <span>Question ${idx + 1}</span>
+          <strong>${Number(time).toFixed(2)}s</strong>
+        `;
+        timingsList.appendChild(row);
+      });
+    } else {
+      timingsList.innerHTML = `<div class="empty-state">Detailed question breakdown not recorded for this session.</div>`;
+    }
+
+    document.getElementById('player-modal').classList.remove('hidden');
+  }
+
+  function closePlayerModal() {
+    document.getElementById('player-modal').classList.add('hidden');
   }
 
   function switchHomeTab(targetVal, evt) {
@@ -962,6 +1103,7 @@
       const tagDisplay = item.tag ? `<span class="player-tag">${item.tag}</span>` : '';
       const row = document.createElement('div');
       row.className = 'leaderboard-item';
+      row.onclick = () => openPlayerModal(item);
       row.innerHTML = `
         <div class="player-meta">
           <div><strong>#${index + 1} ${item.name}</strong>${tagDisplay}</div>
@@ -1081,6 +1223,7 @@
       const tagDisplay = item.tag ? `<span class="player-tag">${item.tag}</span>` : '';
       const row = document.createElement('div');
       row.className = `leaderboard-item ${isCurrentGame ? 'highlight' : ''}`;
+      row.onclick = () => openPlayerModal(item);
       row.innerHTML = `
         <div class="player-meta">
           <div><strong>#${index + 1} ${item.name}</strong>${tagDisplay} ${isCurrentGame ? '(You)' : ''}</div>
