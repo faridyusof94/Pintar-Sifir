@@ -458,12 +458,12 @@
 
     const firebaseConfig = {
       apiKey: "AIzaSyD6w7t0tcePPixd_jHNDu4ki603SjGsoSU",
-  authDomain: "pintar-sifir.firebaseapp.com",
-  projectId: "pintar-sifir",
-  storageBucket: "pintar-sifir.firebasestorage.app",
-  messagingSenderId: "1008490459974",
-  appId: "1:1008490459974:web:b62bfc0084b0b9a8106b47",
-  measurementId: "G-54YHRGFL66"
+      authDomain: "pintar-sifir.firebaseapp.com",
+      projectId: "pintar-sifir",
+      storageBucket: "pintar-sifir.firebasestorage.app",
+      messagingSenderId: "1008490459974",
+      appId: "1:1008490459974:web:b62bfc0084b0b9a8106b47",
+      measurementId: "G-54YHRGFL66"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -683,6 +683,9 @@
 </div>
 
 <script>
+  // GOOGLE SHEET WEBHOOK URL (PASTE YOUR APPS SCRIPT EXEC URL HERE)
+  const GOOGLE_SHEET_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbxMTCkm0DbPmo_GzECYhbNzlrZ7s_g5tlhTC_JiyOLeUAN1UIJa8m5nD_99X0_fe6Gf/exec";
+
   let player = { name: '', tag: '', classVal: 'Year 1', school: '', state: '' };
   let timePerQuestion = 60;
   let currentQuestion = 0;
@@ -964,7 +967,12 @@
     document.getElementById('tab-class-label').textContent = player.classVal;
 
     switchTab('all');
+
+    // Save to Firestore Database
     saveScoreToCloud(score, avgSpeed);
+
+    // Push row to Google Sheet
+    sendToGoogleSheet(score, avgSpeed, accuracyPct);
   }
 
   async function saveScoreToCloud(userScore, userAvgSpeed) {
@@ -980,7 +988,7 @@
         state: player.state,
         score: userScore,
         speed: userAvgSpeed,
-        questionTimes: questionTimes, // Save per-question timings
+        questionTimes: questionTimes,
         createdAt: window.serverTimestamp()
       });
       lastDocId = docRef.id;
@@ -993,13 +1001,42 @@
     }
   }
 
+  async function sendToGoogleSheet(userScore, userAvgSpeed, accuracyPct) {
+    if (!GOOGLE_SHEET_WEBHOOK_URL || GOOGLE_SHEET_WEBHOOK_URL.includes("YOUR_GOOGLE")) return;
+
+    const payload = {
+      name: player.name,
+      tag: player.tag,
+      classVal: player.classVal,
+      school: player.school,
+      state: player.state,
+      score: userScore,
+      accuracy: accuracyPct,
+      speed: userAvgSpeed.toFixed(2),
+      questionTimes: questionTimes.map(t => t.toFixed(2) + 's')
+    };
+
+    try {
+      fetch(GOOGLE_SHEET_WEBHOOK_URL, {
+        method: "POST",
+        mode: "no-cors",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      });
+    } catch (err) {
+      console.error("Error sending to Google Sheet:", err);
+    }
+  }
+
   // MODAL SESSION BREAKDOWN FUNCTIONS
   function openPlayerModal(item) {
     document.getElementById('modal-player-name').textContent = `${item.name} ${item.tag || ''}`;
     document.getElementById('modal-school-info').textContent = `${item.school} (${item.classVal || 'Year N/A'})`;
     document.getElementById('modal-state-info').textContent = item.state || 'N/A';
     document.getElementById('modal-score-info').textContent = `${item.score}/10 (${Math.round((item.score / 10) * 100)}%)`;
-    document.getElementById('modal-speed-info').textContent = `${item.speed ? item.speed.toFixed(2) : 0}s avg`;
+    document.getElementById('modal-speed-info').textContent = `${item.speed ? Number(item.speed).toFixed(2) : 0}s avg`;
 
     const timingsList = document.getElementById('modal-timings-list');
     timingsList.innerHTML = '';
@@ -1111,7 +1148,7 @@
         </div>
         <div class="player-score">
           <div>${item.score}/10 (${Math.round((item.score / 10) * 100)}%)</div>
-          <div class="player-subtext">${item.speed ? item.speed.toFixed(2) : 0}s avg</div>
+          <div class="player-subtext">${item.speed ? Number(item.speed).toFixed(2) : 0}s avg</div>
         </div>
       `;
       container.appendChild(row);
@@ -1231,7 +1268,7 @@
         </div>
         <div class="player-score">
           <div>${item.score}/10 (${Math.round((item.score / 10) * 100)}%)</div>
-          <div class="player-subtext">${item.speed ? item.speed.toFixed(2) : 0}s avg</div>
+          <div class="player-subtext">${item.speed ? Number(item.speed).toFixed(2) : 0}s avg</div>
         </div>
       `;
       container.appendChild(row);
