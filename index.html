@@ -159,7 +159,6 @@
       letter-spacing: 1px;
     }
 
-    /* Countdown Box Styling */
     .countdown-box {
       background-color: #0f172a;
       border: 2px solid var(--accent);
@@ -234,7 +233,6 @@
     .option-c { background-color: #9333ea; }
     .option-d { background-color: #e11d48; }
 
-    /* Answer Animations & Visual Cues */
     .option-btn.btn-correct {
       background-color: var(--success) !important;
       border-color: #ffffff !important;
@@ -378,9 +376,8 @@
   <!-- Firebase SDKs -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, onSnapshot, query, where, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, onSnapshot, query, where, orderBy, limit, serverTimestamp, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-    // FIXME: Replace with your actual Firebase configuration keys
     const firebaseConfig = {
       apiKey: "AIzaSyD6w7t0tcePPixd_jHNDu4ki603SjGsoSU",
   authDomain: "pintar-sifir.firebaseapp.com",
@@ -393,6 +390,9 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+
+    // Enable local offline persistence for faster screen updates
+    enableIndexedDbPersistence(db).catch(() => {});
 
     window.db = db;
     window.addDoc = addDoc;
@@ -590,9 +590,6 @@
   let currentHomeYear = 'Overall';
   let currentTabLeaderboardData = [];
 
-  // ==========================================
-  // WEB AUDIO API FOR SOUND CUES & COUNTDOWN
-  // ==========================================
   let audioCtx = null;
 
   function initAudio() {
@@ -619,32 +616,28 @@
     gain.connect(audioCtx.destination);
 
     if (type === 'tick') {
-      // Crisp countdown tick
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(440, now); // A4
+      osc.frequency.setValueAtTime(440, now);
       gain.gain.setValueAtTime(0.2, now);
       gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
       osc.start(now);
       osc.stop(now + 0.1);
     } else if (type === 'go') {
-      // High start tone
       osc.type = 'triangle';
-      osc.frequency.setValueAtTime(880, now); // A5
+      osc.frequency.setValueAtTime(880, now);
       gain.gain.setValueAtTime(0.35, now);
       gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
       osc.start(now);
       osc.stop(now + 0.3);
     } else if (type === 'correct') {
-      // High-pitched chime
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(523.25, now); // C5
-      osc.frequency.exponentialRampToValueAtTime(880, now + 0.15); // A5
+      osc.frequency.setValueAtTime(523.25, now);
+      osc.frequency.exponentialRampToValueAtTime(880, now + 0.15);
       gain.gain.setValueAtTime(0.3, now);
       gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
       osc.start(now);
       osc.stop(now + 0.3);
     } else if (type === 'wrong') {
-      // Low double-tone boop
       osc.type = 'sawtooth';
       osc.frequency.setValueAtTime(180, now);
       osc.frequency.setValueAtTime(130, now + 0.12);
@@ -658,7 +651,7 @@
   function triggerBoxPulse() {
     const box = document.getElementById('countdown-box');
     box.classList.remove('pulse');
-    void box.offsetWidth; // Trigger reflow
+    void box.offsetWidth;
     box.classList.add('pulse');
   }
 
@@ -749,7 +742,6 @@
       }
 
       const optionsArray = Array.from(optionsSet).sort(() => Math.random() - 0.5);
-
       questions.push({ num1, num2, correct, options: optionsArray });
     }
   }
@@ -758,6 +750,7 @@
     score = 0;
     currentQuestion = 0;
     questionTimes = [];
+    lastDocId = null;
 
     generateQuestions();
     loadQuestion();
@@ -842,7 +835,8 @@
     }
   }
 
-  async function endGame() {
+  // ⚡ INSTANT UI RESULTS TRANSITION
+  function endGame() {
     clearAllTimers();
     document.getElementById('quiz-screen').classList.add('hidden');
     document.getElementById('result-screen').classList.remove('hidden');
@@ -857,8 +851,11 @@
     document.getElementById('res-total-time').textContent = `${totalTimeSpent.toFixed(2)}s`;
     document.getElementById('tab-class-label').textContent = player.classVal;
 
-    await saveScoreToCloud(score, avgSpeed);
+    // Show rankings screen immediately
     switchTab('all');
+
+    // Save to Firebase in the background without blocking the UI
+    saveScoreToCloud(score, avgSpeed);
   }
 
   async function saveScoreToCloud(userScore, userAvgSpeed) {
@@ -877,8 +874,13 @@
         createdAt: window.serverTimestamp()
       });
       lastDocId = docRef.id;
+      
+      // Re-trigger highlight once document ID is confirmed from cloud
+      if (currentTabLeaderboardData.length > 0) {
+        filterResultsLeaderboard();
+      }
     } catch (e) {
-      console.error("Error saving score to Firebase: ", e);
+      console.error("Background sync error: ", e);
     }
   }
 
@@ -1057,7 +1059,7 @@
         filterResultsLeaderboard();
       }, (err) => {
         console.error("Results page live error:", err);
-        container.innerHTML = `<div class="empty-state">Unable to load live rankings. Check database security rules or network connection.</div>`;
+        container.innerHTML = `<div class="empty-state">Unable to load live rankings. Check database rules or indexes.</div>`;
       });
 
     } catch (err) {
@@ -1075,7 +1077,7 @@
     }
 
     data.forEach((item, index) => {
-      const isCurrentGame = item.docId === lastDocId;
+      const isCurrentGame = (item.docId === lastDocId) || (item.tag === player.tag && item.name === player.name);
       const tagDisplay = item.tag ? `<span class="player-tag">${item.tag}</span>` : '';
       const row = document.createElement('div');
       row.className = `leaderboard-item ${isCurrentGame ? 'highlight' : ''}`;
