@@ -658,7 +658,7 @@
       </div>
       <div class="stat-row">
         <span>Accuracy:</span>
-        <strong id="res-accuracy">0% (0/20)</strong>
+        <strong id="res-accuracy">0%</strong>
       </div>
       <div class="stat-row">
         <span>Avg. Speed per Question:</span>
@@ -724,29 +724,43 @@
     return Math.floor(100000 + Math.random() * 900000).toString();
   }
 
-  // ACCURACY FIRST -> SPEED SECOND -> QUESTION COUNT TIE-BREAKER
+  function saveLocalSession(entry) {
+    try {
+      let sessions = JSON.parse(localStorage.getItem('ps_local_sessions') || '[]');
+      sessions = sessions.filter(s => s.playerId !== entry.playerId);
+      sessions.push(entry);
+      localStorage.setItem('ps_local_sessions', JSON.stringify(sessions));
+    } catch(e){}
+  }
+
+  function getLocalSessions() {
+    try {
+      return JSON.parse(localStorage.getItem('ps_local_sessions') || '[]');
+    } catch(e) {
+      return [];
+    }
+  }
+
+  // ACCURACY PERCENTAGE FIRST -> SPEED SECOND -> QUESTION COUNT TIE-BREAKER
   function sortRankings(array) {
     return array.sort((a, b) => {
       const totalQA = Number(a.totalQuestions) || 10;
       const totalQB = Number(b.totalQuestions) || 10;
 
-      // 1. Calculate accuracy percentage accurately
       const accPctA = a.accuracy !== undefined ? Number(a.accuracy) : Math.round((Number(a.score) / totalQA) * 100);
       const accPctB = b.accuracy !== undefined ? Number(b.accuracy) : Math.round((Number(b.score) / totalQB) * 100);
 
       if (accPctB !== accPctA) {
-        return accPctB - accPctA; // Higher accuracy % comes first
+        return accPctB - accPctA;
       }
 
-      // 2. Faster average speed breaks ties for identical accuracy %
       const speedA = a.speed !== undefined ? Number(a.speed) : 999;
       const speedB = b.speed !== undefined ? Number(b.speed) : 999;
 
       if (speedA !== speedB) {
-        return speedA - speedB; // Faster average speed ranks higher
+        return speedA - speedB;
       }
 
-      // 3. If accuracy AND speed are identical, player with more questions ranks higher
       return totalQB - totalQA;
     });
   }
@@ -956,7 +970,7 @@
     clearAllTimers();
 
     const elapsed = Math.min(timePerQuestion, (Date.now() - questionStartTime) / 1000);
-    questionTimes.push(elapsed);
+    questionTimes.push(Number(elapsed.toFixed(2)));
 
     const q = questions[currentQuestion];
     const selectedBtn = document.querySelectorAll('.option-btn')[optionIndex];
@@ -1005,7 +1019,6 @@
     document.getElementById('res-total-time').textContent = `${totalTimeSpent.toFixed(2)}s`;
     document.getElementById('tab-class-label').textContent = player.classVal;
 
-    // Build immediate local entry
     const localEntry = {
       docId: 'local-' + Date.now(),
       playerId: player.id,
@@ -1017,11 +1030,11 @@
       totalQuestions: Number(totalQuestions),
       score: Number(score),
       accuracy: accuracyPct,
-      speed: avgSpeed,
+      speed: Number(avgSpeed.toFixed(2)),
       questionTimes: questionTimes
     };
 
-    // Inject immediately into current view
+    saveLocalSession(localEntry);
     injectLocalEntry(localEntry);
 
     switchTab('all');
@@ -1031,7 +1044,6 @@
   }
 
   function injectLocalEntry(entry) {
-    // Add locally to leaderboard lists so rank appears without waiting for network
     const existsInResults = currentTabLeaderboardData.some(x => x.playerId === entry.playerId);
     if (!existsInResults) {
       currentTabLeaderboardData.push(entry);
@@ -1043,24 +1055,28 @@
   async function saveScoreToCloud(userScore, userAvgSpeed, userAccuracy, localEntry) {
     if (!window.db) return;
 
+    const payload = {
+      playerId: String(player.id),
+      name: String(player.name),
+      classVal: String(player.classVal),
+      school: String(player.school),
+      schoolLower: String(player.school.toLowerCase()),
+      state: String(player.state),
+      totalQuestions: Math.floor(Number(totalQuestions)),
+      score: Math.floor(Number(userScore)),
+      accuracy: Math.floor(Number(userAccuracy)),
+      speed: Number(Number(userAvgSpeed).toFixed(2)),
+      questionTimes: questionTimes.map(t => Number(t)),
+      createdAt: window.serverTimestamp()
+    };
+
     try {
-      const docRef = await window.addDoc(window.collection(window.db, "leaderboard"), {
-        playerId: player.id,
-        name: player.name,
-        classVal: player.classVal,
-        school: player.school,
-        schoolLower: player.school.toLowerCase(),
-        state: player.state,
-        totalQuestions: Number(totalQuestions),
-        score: Number(userScore),
-        accuracy: userAccuracy,
-        speed: userAvgSpeed,
-        questionTimes: questionTimes,
-        createdAt: window.serverTimestamp()
-      });
+      const docRef = await window.addDoc(window.collection(window.db, "leaderboard"), payload);
       lastDocId = docRef.id;
+      console.log("Firestore write succeeded for dynamic questions count:", totalQuestions, "Doc ID:", docRef.id);
     } catch (e) {
-      console.warn("Could not save to Firebase Cloud (local rank remains active):", e);
+      console.error("Firestore Save Failed:", e);
+      alert(`Cloud sync alert: Score saved locally, but Firestore write failed: ${e.message}`);
     }
   }
 
@@ -1138,6 +1154,20 @@
     subscribeHomeLeaderboard(targetVal);
   }
 
+  function mergeLocalSessions(cloudList, filterClass = 'Overall') {
+    const locals = getLocalSessions();
+    let merged = [...cloudList];
+
+    locals.forEach(loc => {
+      if (filterClass !== 'Overall' && loc.classVal !== filterClass) return;
+      if (!merged.some(c => c.playerId === loc.playerId)) {
+        merged.push(loc);
+      }
+    });
+
+    return sortRankings(merged);
+  }
+
   function subscribeHomeLeaderboard(targetVal = 'Overall') {
     if (unsubscribeHome) unsubscribeHome();
 
@@ -1169,14 +1199,18 @@
           rawData.push({ id: doc.id, ...doc.data() });
         });
 
-        homeLeaderboardData = sortRankings(rawData);
+        homeLeaderboardData = mergeLocalSessions(rawData, targetVal);
         filterHomeLeaderboard();
       }, (err) => {
-        console.warn("Live query sync error, displaying current local rankings:", err);
+        console.warn("Live query sync error, fallback to local:", err);
+        homeLeaderboardData = mergeLocalSessions([], targetVal);
+        filterHomeLeaderboard();
       });
 
     } catch (err) {
       console.error("Setup listener error:", err);
+      homeLeaderboardData = mergeLocalSessions([], targetVal);
+      filterHomeLeaderboard();
     }
   }
 
@@ -1275,7 +1309,6 @@
           rawData.push({ docId: doc.id, ...doc.data() });
         });
 
-        // Ensure current active session is present if sync is pending
         if (player.id && !rawData.some(x => x.playerId === player.id)) {
           const totalTimeSpent = questionTimes.reduce((a, b) => a + b, 0);
           const avgSpeed = questionTimes.length > 0 ? (totalTimeSpent / questionTimes.length) : 0;
@@ -1289,7 +1322,7 @@
             totalQuestions: Number(totalQuestions),
             score: Number(score),
             accuracy: Math.round((score / totalQuestions) * 100),
-            speed: avgSpeed,
+            speed: Number(avgSpeed.toFixed(2)),
             questionTimes: questionTimes
           });
         }
@@ -1297,7 +1330,7 @@
         currentTabLeaderboardData = sortRankings(rawData);
         filterResultsLeaderboard();
       }, (err) => {
-        console.warn("Live results sync error, displaying local leaderboard:", err);
+        console.warn("Live results sync error:", err);
         renderResultsLeaderboard(currentTabLeaderboardData);
       });
 
@@ -1364,7 +1397,6 @@
   function exitToMain() {
     clearAllTimers();
     if (unsubscribeResults) unsubscribeResults();
-    document.getElementById('result-screen').classList.remove('hidden');
     document.getElementById('result-screen').classList.add('hidden');
     document.getElementById('setup-screen').classList.remove('hidden');
     subscribeHomeLeaderboard(currentHomeYear);
