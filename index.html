@@ -543,10 +543,11 @@
     <div class="form-group">
       <label for="question-count">Number of Questions *</label>
       <select id="question-count">
-        <option value="10" selected>10 Questions</option>
-        <option value="20">20 Questions</option>
+        <option value="10">10 Questions</option>
+        <option value="20" selected>20 Questions</option>
         <option value="30">30 Questions</option>
         <option value="50">50 Questions</option>
+        <option value="100">100 Questions</option>
       </select>
     </div>
 
@@ -628,7 +629,7 @@
   <!-- QUIZ SCREEN -->
   <div id="quiz-screen" class="hidden">
     <div class="quiz-header">
-      <div>Question <span id="q-num">1</span>/<span id="total-q-num">10</span></div>
+      <div>Question <span id="q-num">1</span>/<span id="total-q-num">20</span></div>
       <div>Time Left: <span id="timer-display" style="color: var(--accent); font-weight: bold;">0</span>s</div>
     </div>
 
@@ -657,7 +658,7 @@
       </div>
       <div class="stat-row">
         <span>Accuracy:</span>
-        <strong id="res-accuracy">0% (0/10)</strong>
+        <strong id="res-accuracy">0% (0/20)</strong>
       </div>
       <div class="stat-row">
         <span>Avg. Speed per Question:</span>
@@ -698,7 +699,7 @@
 
   let player = { id: '', name: '', classVal: 'Year 1', school: '', state: '' };
   let timePerQuestion = 60;
-  let totalQuestions = 10;
+  let totalQuestions = 20;
   let currentQuestion = 0;
   let score = 0;
   let questions = [];
@@ -723,16 +724,30 @@
     return Math.floor(100000 + Math.random() * 900000).toString();
   }
 
+  // ACCURACY FIRST SORTING ALGORITHM
   function sortRankings(array) {
     return array.sort((a, b) => {
-      const accA = a.accuracy !== undefined ? a.accuracy : 0;
-      const accB = b.accuracy !== undefined ? b.accuracy : 0;
-      if (accB !== accA) {
-        return accB - accA; // Higher accuracy first
+      const totalQA = a.totalQuestions || 10;
+      const totalQB = b.totalQuestions || 10;
+
+      // 1. Calculate accuracy percentage accurately
+      const accPctA = a.accuracy !== undefined ? a.accuracy : Math.round((a.score / totalQA) * 100);
+      const accPctB = b.accuracy !== undefined ? b.accuracy : Math.round((b.score / totalQB) * 100);
+
+      // Higher accuracy % comes first
+      if (accPctB !== accPctA) {
+        return accPctB - accPctA;
       }
+
+      // 2. If accuracy % is identical, prefer the player with MORE total questions completed
+      if (totalQB !== totalQA) {
+        return totalQB - totalQA;
+      }
+
+      // 3. Speed is only used as a tie-breaker when accuracy % AND total questions match
       const speedA = a.speed !== undefined ? Number(a.speed) : 999;
       const speedB = b.speed !== undefined ? Number(b.speed) : 999;
-      return speedA - speedB; // Faster average speed first
+      return speedA - speedB;
     });
   }
 
