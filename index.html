@@ -724,30 +724,30 @@
     return Math.floor(100000 + Math.random() * 900000).toString();
   }
 
-  // ACCURACY FIRST SORTING ALGORITHM
+  // ACCURACY FIRST -> SPEED SECOND -> QUESTION COUNT TIE-BREAKER
   function sortRankings(array) {
     return array.sort((a, b) => {
-      const totalQA = a.totalQuestions || 10;
-      const totalQB = b.totalQuestions || 10;
+      const totalQA = Number(a.totalQuestions) || 10;
+      const totalQB = Number(b.totalQuestions) || 10;
 
       // 1. Calculate accuracy percentage accurately
-      const accPctA = a.accuracy !== undefined ? a.accuracy : Math.round((a.score / totalQA) * 100);
-      const accPctB = b.accuracy !== undefined ? b.accuracy : Math.round((b.score / totalQB) * 100);
+      const accPctA = a.accuracy !== undefined ? Number(a.accuracy) : Math.round((Number(a.score) / totalQA) * 100);
+      const accPctB = b.accuracy !== undefined ? Number(b.accuracy) : Math.round((Number(b.score) / totalQB) * 100);
 
-      // Higher accuracy % comes first
       if (accPctB !== accPctA) {
-        return accPctB - accPctA;
+        return accPctB - accPctA; // Higher accuracy % comes first
       }
 
-      // 2. If accuracy % is identical, prefer the player with MORE total questions completed
-      if (totalQB !== totalQA) {
-        return totalQB - totalQA;
-      }
-
-      // 3. Speed is only used as a tie-breaker when accuracy % AND total questions match
+      // 2. Faster average speed breaks ties for identical accuracy %
       const speedA = a.speed !== undefined ? Number(a.speed) : 999;
       const speedB = b.speed !== undefined ? Number(b.speed) : 999;
-      return speedA - speedB;
+
+      if (speedA !== speedB) {
+        return speedA - speedB; // Faster average speed ranks higher
+      }
+
+      // 3. If accuracy AND speed are identical, player with more questions ranks higher
+      return totalQB - totalQA;
     });
   }
 
@@ -1005,13 +1005,42 @@
     document.getElementById('res-total-time').textContent = `${totalTimeSpent.toFixed(2)}s`;
     document.getElementById('tab-class-label').textContent = player.classVal;
 
+    // Build immediate local entry
+    const localEntry = {
+      docId: 'local-' + Date.now(),
+      playerId: player.id,
+      name: player.name,
+      classVal: player.classVal,
+      school: player.school,
+      schoolLower: player.school.toLowerCase(),
+      state: player.state,
+      totalQuestions: Number(totalQuestions),
+      score: Number(score),
+      accuracy: accuracyPct,
+      speed: avgSpeed,
+      questionTimes: questionTimes
+    };
+
+    // Inject immediately into current view
+    injectLocalEntry(localEntry);
+
     switchTab('all');
 
-    saveScoreToCloud(score, avgSpeed, accuracyPct);
+    saveScoreToCloud(score, avgSpeed, accuracyPct, localEntry);
     sendToGoogleSheet(score, avgSpeed, accuracyPct);
   }
 
-  async function saveScoreToCloud(userScore, userAvgSpeed, userAccuracy) {
+  function injectLocalEntry(entry) {
+    // Add locally to leaderboard lists so rank appears without waiting for network
+    const existsInResults = currentTabLeaderboardData.some(x => x.playerId === entry.playerId);
+    if (!existsInResults) {
+      currentTabLeaderboardData.push(entry);
+      currentTabLeaderboardData = sortRankings(currentTabLeaderboardData);
+      renderResultsLeaderboard(currentTabLeaderboardData);
+    }
+  }
+
+  async function saveScoreToCloud(userScore, userAvgSpeed, userAccuracy, localEntry) {
     if (!window.db) return;
 
     try {
@@ -1022,20 +1051,16 @@
         school: player.school,
         schoolLower: player.school.toLowerCase(),
         state: player.state,
-        totalQuestions: totalQuestions,
-        score: userScore,
+        totalQuestions: Number(totalQuestions),
+        score: Number(userScore),
         accuracy: userAccuracy,
         speed: userAvgSpeed,
         questionTimes: questionTimes,
         createdAt: window.serverTimestamp()
       });
       lastDocId = docRef.id;
-      
-      if (currentTabLeaderboardData.length > 0) {
-        filterResultsLeaderboard();
-      }
     } catch (e) {
-      console.error("Background sync error: ", e);
+      console.warn("Could not save to Firebase Cloud (local rank remains active):", e);
     }
   }
 
@@ -1073,8 +1098,8 @@
     document.getElementById('modal-school-info').textContent = `${item.school} (${item.classVal || 'Year N/A'})`;
     document.getElementById('modal-state-info').textContent = item.state || 'N/A';
 
-    const tQuestions = item.totalQuestions || 10;
-    const acc = item.accuracy !== undefined ? item.accuracy : Math.round((item.score / tQuestions) * 100);
+    const tQuestions = Number(item.totalQuestions) || 10;
+    const acc = item.accuracy !== undefined ? item.accuracy : Math.round((Number(item.score) / tQuestions) * 100);
     document.getElementById('modal-score-info').textContent = `${item.score}/${tQuestions} (${acc}%)`;
     document.getElementById('modal-speed-info').textContent = `${item.speed ? Number(item.speed).toFixed(2) : 0}s avg`;
 
@@ -1119,8 +1144,6 @@
     const container = document.getElementById('home-leaderboard-container');
     if (!container) return;
 
-    container.innerHTML = `<div class="empty-state">Loading live ${targetVal} rankings...</div>`;
-
     if (!window.db) {
       setTimeout(() => subscribeHomeLeaderboard(targetVal), 300);
       return;
@@ -1149,8 +1172,7 @@
         homeLeaderboardData = sortRankings(rawData);
         filterHomeLeaderboard();
       }, (err) => {
-        console.error("Front page live leaderboard error:", err);
-        container.innerHTML = `<div class="empty-state">Unable to load live rankings.</div>`;
+        console.warn("Live query sync error, displaying current local rankings:", err);
       });
 
     } catch (err) {
@@ -1168,8 +1190,8 @@
     }
 
     data.forEach((item, index) => {
-      const tQ = item.totalQuestions || 10;
-      const acc = item.accuracy !== undefined ? item.accuracy : Math.round((item.score / tQ) * 100);
+      const tQ = Number(item.totalQuestions) || 10;
+      const acc = item.accuracy !== undefined ? item.accuracy : Math.round((Number(item.score) / tQ) * 100);
       const row = document.createElement('div');
       row.className = 'leaderboard-item';
       row.onclick = () => openPlayerModal(item);
@@ -1215,11 +1237,8 @@
     const searchInput = document.getElementById('results-search-input');
     if (searchInput) searchInput.value = '';
 
-    const container = document.getElementById('leaderboard-container');
-    container.innerHTML = `<div class="empty-state">Loading live rankings...</div>`;
-
     if (!window.db) {
-      container.innerHTML = `<div class="empty-state">Database not connected.</div>`;
+      renderResultsLeaderboard(currentTabLeaderboardData);
       return;
     }
 
@@ -1256,15 +1275,35 @@
           rawData.push({ docId: doc.id, ...doc.data() });
         });
 
+        // Ensure current active session is present if sync is pending
+        if (player.id && !rawData.some(x => x.playerId === player.id)) {
+          const totalTimeSpent = questionTimes.reduce((a, b) => a + b, 0);
+          const avgSpeed = questionTimes.length > 0 ? (totalTimeSpent / questionTimes.length) : 0;
+          rawData.push({
+            docId: lastDocId || 'local-session',
+            playerId: player.id,
+            name: player.name,
+            classVal: player.classVal,
+            school: player.school,
+            state: player.state,
+            totalQuestions: Number(totalQuestions),
+            score: Number(score),
+            accuracy: Math.round((score / totalQuestions) * 100),
+            speed: avgSpeed,
+            questionTimes: questionTimes
+          });
+        }
+
         currentTabLeaderboardData = sortRankings(rawData);
         filterResultsLeaderboard();
       }, (err) => {
-        console.error("Results page live error:", err);
-        container.innerHTML = `<div class="empty-state">Unable to load live rankings.</div>`;
+        console.warn("Live results sync error, displaying local leaderboard:", err);
+        renderResultsLeaderboard(currentTabLeaderboardData);
       });
 
     } catch (err) {
       console.error("Setup results listener error:", err);
+      renderResultsLeaderboard(currentTabLeaderboardData);
     }
   }
 
@@ -1279,8 +1318,8 @@
 
     data.forEach((item, index) => {
       const isCurrentGame = (item.docId === lastDocId) || (item.playerId === player.id);
-      const tQ = item.totalQuestions || 10;
-      const acc = item.accuracy !== undefined ? item.accuracy : Math.round((item.score / tQ) * 100);
+      const tQ = Number(item.totalQuestions) || 10;
+      const acc = item.accuracy !== undefined ? item.accuracy : Math.round((Number(item.score) / tQ) * 100);
       const row = document.createElement('div');
       row.className = `leaderboard-item ${isCurrentGame ? 'highlight' : ''}`;
       row.onclick = () => openPlayerModal(item);
@@ -1325,6 +1364,7 @@
   function exitToMain() {
     clearAllTimers();
     if (unsubscribeResults) unsubscribeResults();
+    document.getElementById('result-screen').classList.remove('hidden');
     document.getElementById('result-screen').classList.add('hidden');
     document.getElementById('setup-screen').classList.remove('hidden');
     subscribeHomeLeaderboard(currentHomeYear);
