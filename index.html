@@ -450,7 +450,7 @@
   <!-- Firebase SDKs -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, addDoc, onSnapshot, query, where, orderBy, limit, serverTimestamp, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, onSnapshot, query, where, limit, serverTimestamp, enableIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyD6w7t0tcePPixd_jHNDu4ki603SjGsoSU",
@@ -473,7 +473,6 @@
     window.onSnapshot = onSnapshot;
     window.query = query;
     window.where = where;
-    window.orderBy = orderBy;
     window.limit = limit;
     window.serverTimestamp = serverTimestamp;
 
@@ -605,7 +604,7 @@
 
     <!-- Front Page Leaderboard -->
     <div style="margin-top: 1.5rem;">
-      <h3>🏆 Top 100 Live Leaderboard</h3>
+      <h3>🏆 Top Live Leaderboard</h3>
       
       <div class="tabs" style="margin-top: 0.5rem;">
         <button type="button" class="tab-btn active home-tab" onclick="switchHomeTab('Overall', event)">Overall</button>
@@ -722,6 +721,19 @@
 
   function generate6DigitID() {
     return Math.floor(100000 + Math.random() * 900000).toString();
+  }
+
+  function sortRankings(array) {
+    return array.sort((a, b) => {
+      const accA = a.accuracy !== undefined ? a.accuracy : 0;
+      const accB = b.accuracy !== undefined ? b.accuracy : 0;
+      if (accB !== accA) {
+        return accB - accA; // Higher accuracy first
+      }
+      const speedA = a.speed !== undefined ? Number(a.speed) : 999;
+      const speedB = b.speed !== undefined ? Number(b.speed) : 999;
+      return speedA - speedB; // Faster average speed first
+    });
   }
 
   function initAudio() {
@@ -1092,7 +1104,7 @@
     const container = document.getElementById('home-leaderboard-container');
     if (!container) return;
 
-    container.innerHTML = `<div class="empty-state">Loading live ${targetVal} top 100 rankings...</div>`;
+    container.innerHTML = `<div class="empty-state">Loading live ${targetVal} rankings...</div>`;
 
     if (!window.db) {
       setTimeout(() => subscribeHomeLeaderboard(targetVal), 300);
@@ -1104,27 +1116,22 @@
       let q;
 
       if (targetVal === 'Overall') {
-        q = window.query(
-          leaderboardRef, 
-          window.orderBy("accuracy", "desc"), 
-          window.orderBy("speed", "asc"), 
-          window.limit(100)
-        );
+        q = window.query(leaderboardRef, window.limit(200));
       } else {
         q = window.query(
           leaderboardRef, 
           window.where("classVal", "==", targetVal),
-          window.orderBy("accuracy", "desc"), 
-          window.orderBy("speed", "asc"), 
-          window.limit(100)
+          window.limit(200)
         );
       }
 
       unsubscribeHome = window.onSnapshot(q, (querySnapshot) => {
-        homeLeaderboardData = [];
+        let rawData = [];
         querySnapshot.forEach((doc) => {
-          homeLeaderboardData.push({ id: doc.id, ...doc.data() });
+          rawData.push({ id: doc.id, ...doc.data() });
         });
+
+        homeLeaderboardData = sortRankings(rawData);
         filterHomeLeaderboard();
       }, (err) => {
         console.error("Front page live leaderboard error:", err);
@@ -1194,7 +1201,7 @@
     if (searchInput) searchInput.value = '';
 
     const container = document.getElementById('leaderboard-container');
-    container.innerHTML = `<div class="empty-state">Loading live top 100 cloud rankings...</div>`;
+    container.innerHTML = `<div class="empty-state">Loading live rankings...</div>`;
 
     if (!window.db) {
       container.innerHTML = `<div class="empty-state">Database not connected.</div>`;
@@ -1208,42 +1215,33 @@
       if (category === 'class') {
         q = window.query(
           leaderboardRef, 
-          window.where("classVal", "==", player.classVal), 
-          window.orderBy("accuracy", "desc"), 
-          window.orderBy("speed", "asc"), 
-          window.limit(100)
+          window.where("classVal", "==", player.classVal),
+          window.limit(200)
         );
       } else if (category === 'school') {
         q = window.query(
           leaderboardRef, 
           window.where("schoolLower", "==", player.school.toLowerCase()), 
-          window.where("state", "==", player.state), 
-          window.orderBy("accuracy", "desc"), 
-          window.orderBy("speed", "asc"), 
-          window.limit(100)
+          window.where("state", "==", player.state),
+          window.limit(200)
         );
       } else if (category === 'state') {
         q = window.query(
           leaderboardRef, 
-          window.where("state", "==", player.state), 
-          window.orderBy("accuracy", "desc"), 
-          window.orderBy("speed", "asc"), 
-          window.limit(100)
+          window.where("state", "==", player.state),
+          window.limit(200)
         );
       } else {
-        q = window.query(
-          leaderboardRef, 
-          window.orderBy("accuracy", "desc"), 
-          window.orderBy("speed", "asc"), 
-          window.limit(100)
-        );
+        q = window.query(leaderboardRef, window.limit(200));
       }
 
       unsubscribeResults = window.onSnapshot(q, (querySnapshot) => {
-        currentTabLeaderboardData = [];
+        let rawData = [];
         querySnapshot.forEach((doc) => {
-          currentTabLeaderboardData.push({ docId: doc.id, ...doc.data() });
+          rawData.push({ docId: doc.id, ...doc.data() });
         });
+
+        currentTabLeaderboardData = sortRankings(rawData);
         filterResultsLeaderboard();
       }, (err) => {
         console.error("Results page live error:", err);
