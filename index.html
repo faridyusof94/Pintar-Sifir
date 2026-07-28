@@ -325,6 +325,16 @@
       gap: 0.15rem;
     }
 
+    .player-id-badge {
+      font-size: 0.75rem;
+      background: #334155;
+      color: var(--accent);
+      padding: 0.1rem 0.35rem;
+      border-radius: 0.25rem;
+      font-family: monospace;
+      margin-left: 0.35rem;
+    }
+
     .player-subtext {
       font-size: 0.75rem;
       color: #94a3b8;
@@ -486,6 +496,10 @@
 
       <div class="stats-card">
         <div class="stat-row">
+          <span>ID Code:</span>
+          <strong id="modal-id-info" style="color: var(--accent); font-family: monospace;">-</strong>
+        </div>
+        <div class="stat-row">
           <span>School & Class:</span>
           <strong id="modal-school-info">-</strong>
         </div>
@@ -604,7 +618,7 @@
       </div>
 
       <div class="form-group" style="margin: 0.5rem 0;">
-        <input type="text" id="home-search-input" placeholder="🔍 Search by name..." oninput="filterHomeLeaderboard()">
+        <input type="text" id="home-search-input" placeholder="🔍 Search by name or 6-digit ID..." oninput="filterHomeLeaderboard()">
       </div>
       <div id="home-leaderboard-container" class="leaderboard-list">
         <div class="empty-state">Connecting to live rankings...</div>
@@ -635,6 +649,10 @@
 
     <div class="stats-card">
       <div class="stat-row">
+        <span>Player ID:</span>
+        <strong id="res-player-id" style="color: var(--accent); font-family: monospace;">-</strong>
+      </div>
+      <div class="stat-row">
         <span>Player Name:</span>
         <strong id="res-player-name" style="color: var(--accent); font-size:1rem;">-</strong>
       </div>
@@ -661,7 +679,7 @@
     </div>
 
     <div class="form-group">
-      <input type="text" id="results-search-input" placeholder="🔍 Search tab by name..." oninput="filterResultsLeaderboard()">
+      <input type="text" id="results-search-input" placeholder="🔍 Search tab by name or ID..." oninput="filterResultsLeaderboard()">
     </div>
 
     <div id="leaderboard-container" class="leaderboard-list">
@@ -679,7 +697,7 @@
 <script>
   const GOOGLE_SHEET_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbxMTCkm0DbPmo_GzECYhbNzlrZ7s_g5tlhTC_JiyOLeUAN1UIJa8m5nD_99X0_fe6Gf/exec";
 
-  let player = { name: '', classVal: 'Year 1', school: '', state: '' };
+  let player = { id: '', name: '', classVal: 'Year 1', school: '', state: '' };
   let timePerQuestion = 60;
   let totalQuestions = 10;
   let currentQuestion = 0;
@@ -701,6 +719,10 @@
   let currentTabLeaderboardData = [];
 
   let audioCtx = null;
+
+  function generate6DigitID() {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+  }
 
   function initAudio() {
     if (!audioCtx) {
@@ -786,6 +808,7 @@
       return;
     }
 
+    player.id = generate6DigitID();
     player.name = name;
     player.classVal = document.getElementById('player-class').value;
     player.school = school;
@@ -948,6 +971,7 @@
     const avgSpeed = questionTimes.length > 0 ? (totalTimeSpent / questionTimes.length) : 0;
     const accuracyPct = Math.round((score / totalQuestions) * 100);
 
+    document.getElementById('res-player-id').textContent = `#${player.id}`;
     document.getElementById('res-player-name').textContent = player.name;
     document.getElementById('res-accuracy').textContent = `${accuracyPct}% (${score}/${totalQuestions})`;
     document.getElementById('res-speed').textContent = `${avgSpeed.toFixed(2)}s`;
@@ -956,15 +980,16 @@
 
     switchTab('all');
 
-    saveScoreToCloud(score, avgSpeed);
+    saveScoreToCloud(score, avgSpeed, accuracyPct);
     sendToGoogleSheet(score, avgSpeed, accuracyPct);
   }
 
-  async function saveScoreToCloud(userScore, userAvgSpeed) {
+  async function saveScoreToCloud(userScore, userAvgSpeed, userAccuracy) {
     if (!window.db) return;
 
     try {
       const docRef = await window.addDoc(window.collection(window.db, "leaderboard"), {
+        playerId: player.id,
         name: player.name,
         classVal: player.classVal,
         school: player.school,
@@ -972,6 +997,7 @@
         state: player.state,
         totalQuestions: totalQuestions,
         score: userScore,
+        accuracy: userAccuracy,
         speed: userAvgSpeed,
         questionTimes: questionTimes,
         createdAt: window.serverTimestamp()
@@ -990,6 +1016,7 @@
     if (!GOOGLE_SHEET_WEBHOOK_URL || GOOGLE_SHEET_WEBHOOK_URL.includes("YOUR_GOOGLE")) return;
 
     const payload = {
+      playerId: player.id,
       name: player.name,
       classVal: player.classVal,
       school: player.school,
@@ -1015,11 +1042,13 @@
 
   function openPlayerModal(item) {
     document.getElementById('modal-player-name').textContent = item.name || 'Player Details';
+    document.getElementById('modal-id-info').textContent = item.playerId ? `#${item.playerId}` : 'N/A';
     document.getElementById('modal-school-info').textContent = `${item.school} (${item.classVal || 'Year N/A'})`;
     document.getElementById('modal-state-info').textContent = item.state || 'N/A';
 
     const tQuestions = item.totalQuestions || 10;
-    document.getElementById('modal-score-info').textContent = `${item.score}/${tQuestions} (${Math.round((item.score / tQuestions) * 100)}%)`;
+    const acc = item.accuracy !== undefined ? item.accuracy : Math.round((item.score / tQuestions) * 100);
+    document.getElementById('modal-score-info').textContent = `${item.score}/${tQuestions} (${acc}%)`;
     document.getElementById('modal-speed-info').textContent = `${item.speed ? Number(item.speed).toFixed(2) : 0}s avg`;
 
     const timingsList = document.getElementById('modal-timings-list');
@@ -1077,7 +1106,7 @@
       if (targetVal === 'Overall') {
         q = window.query(
           leaderboardRef, 
-          window.orderBy("score", "desc"), 
+          window.orderBy("accuracy", "desc"), 
           window.orderBy("speed", "asc"), 
           window.limit(100)
         );
@@ -1085,7 +1114,7 @@
         q = window.query(
           leaderboardRef, 
           window.where("classVal", "==", targetVal),
-          window.orderBy("score", "desc"), 
+          window.orderBy("accuracy", "desc"), 
           window.orderBy("speed", "asc"), 
           window.limit(100)
         );
@@ -1118,16 +1147,20 @@
 
     data.forEach((item, index) => {
       const tQ = item.totalQuestions || 10;
+      const acc = item.accuracy !== undefined ? item.accuracy : Math.round((item.score / tQ) * 100);
       const row = document.createElement('div');
       row.className = 'leaderboard-item';
       row.onclick = () => openPlayerModal(item);
       row.innerHTML = `
         <div class="player-meta">
-          <div><strong>#${index + 1} ${item.name}</strong></div>
+          <div>
+            <strong>#${index + 1} ${item.name}</strong>
+            ${item.playerId ? `<span class="player-id-badge">#${item.playerId}</span>` : ''}
+          </div>
           <div class="player-subtext">${item.school} • ${item.classVal || 'Year N/A'} • ${item.state}</div>
         </div>
         <div class="player-score">
-          <div>${item.score}/${tQ} (${Math.round((item.score / tQ) * 100)}%)</div>
+          <div>${item.score}/${tQ} (${acc}%)</div>
           <div class="player-subtext">${item.speed ? Number(item.speed).toFixed(2) : 0}s avg</div>
         </div>
       `;
@@ -1143,7 +1176,9 @@
     }
 
     const filtered = homeLeaderboardData.filter(item => {
-      return item.name && item.name.toLowerCase().includes(queryTerm);
+      const matchName = item.name && item.name.toLowerCase().includes(queryTerm);
+      const matchId = item.playerId && item.playerId.toString().includes(queryTerm);
+      return matchName || matchId;
     });
 
     renderHomeLeaderboard(filtered);
@@ -1174,7 +1209,7 @@
         q = window.query(
           leaderboardRef, 
           window.where("classVal", "==", player.classVal), 
-          window.orderBy("score", "desc"), 
+          window.orderBy("accuracy", "desc"), 
           window.orderBy("speed", "asc"), 
           window.limit(100)
         );
@@ -1183,7 +1218,7 @@
           leaderboardRef, 
           window.where("schoolLower", "==", player.school.toLowerCase()), 
           window.where("state", "==", player.state), 
-          window.orderBy("score", "desc"), 
+          window.orderBy("accuracy", "desc"), 
           window.orderBy("speed", "asc"), 
           window.limit(100)
         );
@@ -1191,14 +1226,14 @@
         q = window.query(
           leaderboardRef, 
           window.where("state", "==", player.state), 
-          window.orderBy("score", "desc"), 
+          window.orderBy("accuracy", "desc"), 
           window.orderBy("speed", "asc"), 
           window.limit(100)
         );
       } else {
         q = window.query(
           leaderboardRef, 
-          window.orderBy("score", "desc"), 
+          window.orderBy("accuracy", "desc"), 
           window.orderBy("speed", "asc"), 
           window.limit(100)
         );
@@ -1230,18 +1265,22 @@
     }
 
     data.forEach((item, index) => {
-      const isCurrentGame = (item.docId === lastDocId) || (item.name === player.name && item.school === player.school);
+      const isCurrentGame = (item.docId === lastDocId) || (item.playerId === player.id);
       const tQ = item.totalQuestions || 10;
+      const acc = item.accuracy !== undefined ? item.accuracy : Math.round((item.score / tQ) * 100);
       const row = document.createElement('div');
       row.className = `leaderboard-item ${isCurrentGame ? 'highlight' : ''}`;
       row.onclick = () => openPlayerModal(item);
       row.innerHTML = `
         <div class="player-meta">
-          <div><strong>#${index + 1} ${item.name}</strong> ${isCurrentGame ? '(You)' : ''}</div>
+          <div>
+            <strong>#${index + 1} ${item.name}</strong> ${isCurrentGame ? '(You)' : ''}
+            ${item.playerId ? `<span class="player-id-badge">#${item.playerId}</span>` : ''}
+          </div>
           <div class="player-subtext">${item.school} • ${item.classVal || 'Year N/A'} • ${item.state}</div>
         </div>
         <div class="player-score">
-          <div>${item.score}/${tQ} (${Math.round((item.score / tQ) * 100)}%)</div>
+          <div>${item.score}/${tQ} (${acc}%)</div>
           <div class="player-subtext">${item.speed ? Number(item.speed).toFixed(2) : 0}s avg</div>
         </div>
       `;
@@ -1257,7 +1296,9 @@
     }
 
     const filtered = currentTabLeaderboardData.filter(item => {
-      return item.name && item.name.toLowerCase().includes(queryTerm);
+      const matchName = item.name && item.name.toLowerCase().includes(queryTerm);
+      const matchId = item.playerId && item.playerId.toString().includes(queryTerm);
+      return matchName || matchId;
     });
 
     renderResultsLeaderboard(filtered);
